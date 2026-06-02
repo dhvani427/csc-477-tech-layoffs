@@ -275,6 +275,8 @@ const mapContainer = htl.html`
       justify-content: space-between;
       gap: 14px;
     }
+
+    
   </style>
 
   <div id="map-wrapper">
@@ -468,112 +470,134 @@ const companyData = d3.rollups(
 .slice(0, 15);
 ```
 
+
 ```js
-const barMargin = { top: 10, right: 30, bottom: 30, left: 160 };
-const barW = width - barMargin.left - barMargin.right;
-const barH = companyData.length * 28;
+{
+  if (companyData.length === 0) {
+    const empty = html`<div class="empty-state">
+      No layoff records found for ${selectedState} in the selected time range.
+    </div>`;
+    display(empty);
+  } else {
+    const barMargin = { top: 10, right: 30, bottom: 30, left: 160 };
+    const barW = width - barMargin.left - barMargin.right;
+    const barH = companyData.length * 28;
 
-const barSvg = d3.create("svg").attr("width", width).attr("height", barH + barMargin.top + barMargin.bottom);
+    const barSvg = d3.create("svg")
+      .attr("width", width)
+      .attr("height", barH + barMargin.top + barMargin.bottom);
 
-const barContainer = htl.html`
-  <style>
-    #bar-wrapper {
-      position: relative;
+    const barContainer = htl.html`
+      <style>
+        #bar-wrapper {
+          position: relative;
+        }
+
+        #tooltip-bar {
+          font: 13px sans-serif;
+          background: rgba(255, 255, 255, 0.96);
+          border: 1px solid #d6d6d6;
+          border-radius: 6px;
+          padding: 8px 10px;
+          box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+          line-height: 1.25;
+          color: #222;
+          min-width: 165px;
+          z-index: 10;
+          visibility: hidden;
+          display: none;
+          position: absolute;
+          pointer-events: none;
+        }
+
+        #tooltip-bar .tooltip-title {
+          font-weight: 700;
+          margin-bottom: 5px;
+        }
+
+        #tooltip-bar .tooltip-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 14px;
+        }
+      </style>
+
+      <div id="bar-wrapper">
+        <div id="tooltip-bar"></div>
+        ${barSvg.node()}
+      </div>
+    `;
+
+    const barTooltip = d3.select(barContainer).select("#tooltip-bar");
+    const barWrapper = d3.select(barContainer).select("#bar-wrapper").node();
+
+    const selectedStateTotal = d3.sum(companyData, d => d.total);
+
+    function attachBarTooltip(selection, tooltip, htmlFn) {
+      function positionTooltip(event) {
+        const rect = barWrapper.getBoundingClientRect();
+
+        let x = event.clientX - rect.left + 10;
+        let y = event.clientY - rect.top + 10;
+
+        const tipWidth = 230;
+        const tipHeight = 120;
+
+        if (x + tipWidth > rect.width) x = event.clientX - rect.left - tipWidth - 10;
+        if (y + tipHeight > rect.height) y = event.clientY - rect.top - tipHeight - 10;
+
+        tooltip
+          .style("left", `${Math.max(6, x)}px`)
+          .style("top", `${Math.max(6, y)}px`);
+      }
+
+      selection
+        .on("mouseover", function(event, d) {
+          d3.select(this).attr("fill", "#2a5f8f");
+
+          tooltip.html(htmlFn(d));
+          positionTooltip(event);
+
+          tooltip
+            .style("visibility", "visible")
+            .style("display", "block");
+        })
+        .on("mousemove", function(event) {
+          positionTooltip(event);
+        })
+        .on("mouseout", function() {
+          d3.select(this).attr("fill", "steelblue");
+
+          tooltip
+            .style("visibility", "hidden")
+            .style("display", "none");
+        });
     }
 
-    #tooltip-bar {
-      font: 13px sans-serif;
-      background: rgba(255, 255, 255, 0.96);
-      border: 1px solid #d6d6d6;
-      border-radius: 6px;
-      padding: 8px 10px;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
-      line-height: 1.25;
-      color: #222;
-      min-width: 165px;
-      z-index: 10;
-      visibility: hidden;
-      display: none;
-      position: absolute;
-      pointer-events: none;
-    }
+    const bg = barSvg.append("g")
+      .attr("transform", `translate(${barMargin.left},${barMargin.top})`);
 
-    #tooltip-bar .tooltip-title {
-      font-weight: 700;
-      margin-bottom: 5px;
-    }
+    const xBar = d3.scaleLinear()
+      .domain([0, d3.max(companyData, d => d.total) || 1])
+      .range([0, barW]);
 
-    #tooltip-bar .tooltip-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 14px;
-    }
-  </style>
+    const yBar = d3.scaleBand()
+      .domain(companyData.map(d => d.company))
+      .range([0, barH])
+      .padding(0.2);
 
-  <div id="bar-wrapper">
-    <div id="tooltip-bar"></div>
-    ${barSvg.node()}
-  </div>
-`;
+    bg.append("g")
+      .call(d3.axisLeft(yBar).tickSize(0))
+      .select(".domain")
+      .remove();
 
-const barTooltip = d3.select(barContainer).select("#tooltip-bar");
-const barWrapper = d3.select(barContainer).select("#bar-wrapper").node();
+    bg.append("g")
+      .attr("transform", `translate(0,${barH})`)
+      .call(d3.axisBottom(xBar).ticks(5).tickFormat(d3.format(",")));
 
-const selectedStateTotal = d3.sum(companyData, d => d.total);
-
-function attachBarTooltip(selection, tooltip, htmlFn) {
-  function positionTooltip(event) {
-    const rect = barWrapper.getBoundingClientRect();
-
-    let x = event.clientX - rect.left + 10;
-    let y = event.clientY - rect.top + 10;
-
-    const tipWidth = 230;
-    const tipHeight = 120;
-
-    if (x + tipWidth > rect.width) x = event.clientX - rect.left - tipWidth - 10;
-    if (y + tipHeight > rect.height) y = event.clientY - rect.top - tipHeight - 10;
-
-    tooltip
-      .style("left", `${Math.max(6, x)}px`)
-      .style("top", `${Math.max(6, y)}px`);
-  }
-
-  selection
-    .on("mouseover", function(event, d) {
-      d3.select(this).attr("fill", "#2a5f8f");
-
-      tooltip.html(htmlFn(d));
-      positionTooltip(event);
-
-      tooltip
-        .style("visibility", "visible")
-        .style("display", "block");
-    })
-    .on("mousemove", function(event) {
-      positionTooltip(event);
-    })
-    .on("mouseout", function() {
-      d3.select(this).attr("fill", "steelblue");
-
-      tooltip
-        .style("visibility", "hidden")
-        .style("display", "none");
-    });
-}
-
-const bg = barSvg.append("g").attr("transform", `translate(${barMargin.left},${barMargin.top})`);
-
-const xBar = d3.scaleLinear().domain([0, d3.max(companyData, d => d.total) || 1]).range([0, barW]);
-const yBar = d3.scaleBand().domain(companyData.map(d => d.company)).range([0, barH]).padding(0.2);
-
-bg.append("g").call(d3.axisLeft(yBar).tickSize(0)).select(".domain").remove();
-bg.append("g").attr("transform", `translate(0,${barH})`).call(d3.axisBottom(xBar).ticks(5).tickFormat(d3.format(",")));
-
-bg.selectAll("rect.bar")
-  .data(companyData)
-  .join(
-    enter => enter.append("rect")
+    bg.selectAll("rect.bar")
+      .data(companyData)
+      .join("rect")
       .attr("class", "bar")
       .attr("y", d => yBar(d.company))
       .attr("width", d => xBar(d.total))
@@ -581,41 +605,37 @@ bg.selectAll("rect.bar")
       .attr("fill", "steelblue")
       .attr("rx", 3)
       .call(sel => attachBarTooltip(sel, barTooltip, d => {
-  const rank = companyData.findIndex(x => x.company === d.company) + 1;
-  const share = selectedStateTotal ? d.total / selectedStateTotal : 0;
+        const rank = companyData.findIndex(x => x.company === d.company) + 1;
+        const share = selectedStateTotal ? d.total / selectedStateTotal : 0;
 
-  return `
-      <div class="tooltip-title">${d.company}</div>
+        return `
+          <div class="tooltip-title">${d.company}</div>
 
-      <div class="tooltip-row">
-        <span>State</span>
-        <strong>${selectedState === "All States" ? "All U.S." : selectedState}</strong>
-      </div>
+          <div class="tooltip-row">
+            <span>State</span>
+            <strong>${selectedState === "All States" ? "All U.S." : selectedState}</strong>
+          </div>
 
-      <div class="tooltip-row">
-        <span>Rank</span>
-        <strong>#${rank}</strong>
-      </div>
+          <div class="tooltip-row">
+            <span>Rank</span>
+            <strong>#${rank}</strong>
+          </div>
 
-      <div class="tooltip-row">
-        <span>Laid off</span>
-        <strong>${d3.format(",")(d.total)}</strong>
-      </div>
+          <div class="tooltip-row">
+            <span>Laid off</span>
+            <strong>${d3.format(",")(d.total)}</strong>
+          </div>
 
-      <div class="tooltip-row">
-        <span>Share</span>
-        <strong>${d3.format(".1%")(share)}</strong>
-      </div>
-    `;
-    })),
-    update => update
-      .attr("y", d => yBar(d.company))
-      .attr("width", d => xBar(d.total))
-      .attr("height", yBar.bandwidth()),
-    exit => exit.remove()
-  );
+          <div class="tooltip-row">
+            <span>Share</span>
+            <strong>${d3.format(".1%")(share)}</strong>
+          </div>
+        `;
+      }));
 
-display(barContainer);
+    display(barContainer);
+  }
+}
 ```
 
 ---
@@ -1330,4 +1350,13 @@ hr { margin: 2rem 0; }
 .stat-card { background: #f5f5f5; border-radius: 8px; padding: 1rem 1.5rem; min-width: 140px; text-align: center; }
 .stat-value { font-size: 1.8rem; font-weight: 700; color: steelblue; }
 .stat-label { font-size: 0.85rem; color: #666; margin-top: 0.25rem; }
+.empty-state {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  color: #64748b;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  text-align: center;
+}
 </style>
