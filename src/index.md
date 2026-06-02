@@ -477,37 +477,88 @@ const barSvg = d3.create("svg").attr("width", width).attr("height", barH + barMa
 
 const barContainer = htl.html`
   <style>
+    #bar-wrapper {
+      position: relative;
+    }
+
     #tooltip-bar {
-      font: 10pt sans-serif;
-      background-color: white;
-      border: 1pt solid grey;
-      padding: 5px;
-      box-shadow: 3px 3px 3px darkgrey;
-      max-width: 40ch;
-      z-index: 1;
+      font: 13px sans-serif;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid #d6d6d6;
+      border-radius: 6px;
+      padding: 8px 10px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+      line-height: 1.25;
+      color: #222;
+      min-width: 165px;
+      z-index: 10;
       visibility: hidden;
+      display: none;
       position: absolute;
       pointer-events: none;
     }
+
+    #tooltip-bar .tooltip-title {
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    #tooltip-bar .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+    }
   </style>
-  <div id="tooltip-bar"></div>
-  ${barSvg.node()}
+
+  <div id="bar-wrapper">
+    <div id="tooltip-bar"></div>
+    ${barSvg.node()}
+  </div>
 `;
 
 const barTooltip = d3.select(barContainer).select("#tooltip-bar");
+const barWrapper = d3.select(barContainer).select("#bar-wrapper").node();
+
+const selectedStateTotal = d3.sum(companyData, d => d.total);
 
 function attachBarTooltip(selection, tooltip, htmlFn) {
+  function positionTooltip(event) {
+    const rect = barWrapper.getBoundingClientRect();
+
+    let x = event.clientX - rect.left + 10;
+    let y = event.clientY - rect.top + 10;
+
+    const tipWidth = 230;
+    const tipHeight = 120;
+
+    if (x + tipWidth > rect.width) x = event.clientX - rect.left - tipWidth - 10;
+    if (y + tipHeight > rect.height) y = event.clientY - rect.top - tipHeight - 10;
+
+    tooltip
+      .style("left", `${Math.max(6, x)}px`)
+      .style("top", `${Math.max(6, y)}px`);
+  }
+
   selection
     .on("mouseover", function(event, d) {
       d3.select(this).attr("fill", "#2a5f8f");
-      tooltip.style("visibility", "visible").html(htmlFn(d));
+
+      tooltip.html(htmlFn(d));
+      positionTooltip(event);
+
+      tooltip
+        .style("visibility", "visible")
+        .style("display", "block");
     })
     .on("mousemove", function(event) {
-      tooltip.style("left", (event.pageX + 12) + "px").style("top", (event.pageY - 28) + "px");
+      positionTooltip(event);
     })
     .on("mouseout", function() {
-      d3.select(this).attr("stroke", "#54555c").attr("stroke-width", 0.6);
-      tooltip.style("visibility", "hidden").style("display", "none");
+      d3.select(this).attr("fill", "steelblue");
+
+      tooltip
+        .style("visibility", "hidden")
+        .style("display", "none");
     });
 }
 
@@ -529,9 +580,34 @@ bg.selectAll("rect.bar")
       .attr("height", yBar.bandwidth())
       .attr("fill", "steelblue")
       .attr("rx", 3)
-      .call(sel => attachBarTooltip(sel, barTooltip, d =>
-        `<strong>${d.company}</strong><br/>Laid off: ${d3.format(",")(d.total)}`
-      )),
+      .call(sel => attachBarTooltip(sel, barTooltip, d => {
+  const rank = companyData.findIndex(x => x.company === d.company) + 1;
+  const share = selectedStateTotal ? d.total / selectedStateTotal : 0;
+
+  return `
+      <div class="tooltip-title">${d.company}</div>
+
+      <div class="tooltip-row">
+        <span>State</span>
+        <strong>${selectedState === "All States" ? "All U.S." : selectedState}</strong>
+      </div>
+
+      <div class="tooltip-row">
+        <span>Rank</span>
+        <strong>#${rank}</strong>
+      </div>
+
+      <div class="tooltip-row">
+        <span>Laid off</span>
+        <strong>${d3.format(",")(d.total)}</strong>
+      </div>
+
+      <div class="tooltip-row">
+        <span>Share</span>
+        <strong>${d3.format(".1%")(share)}</strong>
+      </div>
+    `;
+    })),
     update => update
       .attr("y", d => yBar(d.company))
       .attr("width", d => xBar(d.total))
