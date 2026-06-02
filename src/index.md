@@ -213,10 +213,29 @@ const states = feature(us, us.objects.states);
 ```
 
 ```js
+const validStates = new Set(["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming","District of Columbia"]);
+
+const stateList = ["All States", ...Array.from(validStates).sort()];
+
+const stateSelector = Inputs.select(stateList, {
+  label: "State",
+  value: "All States"
+});
+
+const selectedState = view(stateSelector);
+
+function setPickedStateFromMap(state) {
+  stateSelector.value = state;
+  stateSelector.dispatchEvent(new InputEvent("input", { bubbles: true }));
+}
+```
+
+```js
 const mapH = 520;
 const mapInnerH = 480;
 const maxVal = d3.max(byState, ([, v]) => v.total) || 1;
-const color = d3.scaleSequentialSqrt(d3.interpolateBlues)
+const color = d3.scaleSequentialPow(t => d3.interpolateBlues(0.08 + 0.92 * t))
+  .exponent(0.35)
   .domain([0, maxVal]);
 const projection = d3.geoAlbersUsa().fitSize([width, mapInnerH], states);
 const path = d3.geoPath().projection(projection);
@@ -295,8 +314,10 @@ function attachMapTooltip(selection, tooltip, htmlFn) {
     .on("mousemove", function(event) {
       positionTooltip(event);
     })
-    .on("mouseout", function() {
-      d3.select(this).attr("stroke", "#54555c").attr("stroke-width", 0.5);
+    .on("mouseout", function(event,d) {
+      d3.select(this)
+      .attr("stroke", d.properties.name === selectedState ? "#111" : "#54555c")
+      .attr("stroke-width", d.properties.name === selectedState ? 2 : 0.6);
 
       tooltip
         .style("visibility", "hidden")
@@ -313,10 +334,10 @@ mapSvg.selectAll("path.state")
       .attr("fill", d => {
         const abbr = stateNameToAbbr[d.properties.name];
         const val = stateMap.get(d.properties.name) || stateMap.get(abbr);
-        return val ? color(val.total) : "#eee";
+        return color(val ? val.total : 0);
       })
-      .attr("stroke", "#54555c")
-      .attr("stroke-width", 0.6)
+      .attr("stroke", d => d.properties.name === selectedState ? "#111" : "#54555c")
+      .attr("stroke-width", d => d.properties.name === selectedState ? 2 : 0.6)
       .call(sel => attachMapTooltip(sel, mapTooltip, d => {
         const abbr = stateNameToAbbr[d.properties.name];
         const val = stateMap.get(d.properties.name) || stateMap.get(abbr);
@@ -351,14 +372,16 @@ mapSvg.selectAll("path.state")
       .style("visibility", "hidden")
       .style("display", "none");
 
-      setPickedStateFromMap(pickedState === state ? "All States" : state);
+      setPickedStateFromMap(selectedState === state ? "All States" : state);
     }),
     update => update
-      .attr("fill", d => {
-        const abbr = stateNameToAbbr[d.properties.name];
-        const val = stateMap.get(d.properties.name) || stateMap.get(abbr);
-        return val ? color(val.total) : "#eee";
-      }),
+    .attr("fill", d => {
+      const abbr = stateNameToAbbr[d.properties.name];
+      const val = stateMap.get(d.properties.name) || stateMap.get(abbr);
+      return color(val ? val.total : 0);
+    })
+    .attr("stroke", d => d.properties.name === selectedState ? "#111" : "#54555c")
+    .attr("stroke-width", d => d.properties.name === selectedState ? 2 : 0.6),
     exit => exit.remove()
   );
 
@@ -427,25 +450,13 @@ display(mapContainer);
 <p class="section-sub">Click a state on the map, or use the dropdown, to see which companies laid off the most workers there.</p>
 
 ```js
-const validStates = new Set(["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming","District of Columbia"]);
-
-const stateList = ["All States", ...Array.from(new Set(usData.map(d => d.USState).filter(s => s && validStates.has(s)))).sort()];
-
-const stateSelector = Inputs.select(stateList, { label: "State", value: "All States" });
-
-function setPickedStateFromMap(state) {
-  stateSelector.value = state;
-  stateSelector.dispatchEvent(new Event("input", { bubbles: true }));
-}
-
-const pickedState = Generators.input(stateSelector);
 display(stateSelector);
 ```
 
 ```js
-const companySource = pickedState === "All States"
+const companySource = selectedState === "All States"
   ? usData
-  : usData.filter(d => d.USState === pickedState);
+  : usData.filter(d => d.USState === selectedState);
 
 const companyData = d3.rollups(
   companySource,
