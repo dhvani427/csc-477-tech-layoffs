@@ -151,18 +151,16 @@ display(statsDiv);
 ---
 
 <h2 class="section-title">Layoffs by State</h2>
-<p class="section-sub">Select a year to update the map.</p>
+<p class="section-sub">Brush the timeline above to update the map.</p>
 
 ```js
-// Filter to US only for the map and bar chart
-const usData = data.filter(d => d.Country === "USA" && d.USState && d.USState.trim() !== "");
-```
-
-```js
-const years = ["All", "2020", "2021", "2022", "2023", "2024", "2025"];
-const selectedYear = Inputs.select(years, { label: "Year", value: "All" });
-const year = Generators.input(selectedYear);
-display(selectedYear);
+// Filter to US only for the map and bar chart, using the selected timeline range from the top chart
+const usData = brushFiltered.filter(d =>
+  d.Country === "USA" &&
+  d.USState &&
+  String(d.USState).trim() !== "" &&
+  d.Laid_Off > 0
+);
 ```
 
 ```js
@@ -180,13 +178,31 @@ const stateNameToAbbr = {
   "West Virginia":"WV","Wisconsin":"WI","Wyoming":"WY","District of Columbia":"DC"
 };
 
-const yearFiltered = year === "All" ? usData : usData.filter(d => String(d.Year) === year);
+const yearFiltered = usData;
+const usTotalLaidOff = d3.sum(yearFiltered, d => d.Laid_Off);
 
 const byState = d3.rollups(
   yearFiltered,
-  v => ({ total: d3.sum(v, d => d.Laid_Off), count: v.length }),
+  v => {
+    const total = d3.sum(v, d => d.Laid_Off);
+    const companiesAffected = new Set(v.map(d => d.Company)).size;
+
+    const topCompany = d3.rollups(
+      v,
+      rows => d3.sum(rows, d => d.Laid_Off),
+      d => d.Company
+    ).sort((a, b) => b[1] - a[1])[0];
+
+    return {
+      total,
+      companiesAffected,
+      topCompany: topCompany ? topCompany[0] : null,
+      topCompanyTotal: topCompany ? topCompany[1] : 0
+    };
+  },
   d => d.USState
 );
+
 const stateMap = new Map(byState.map(([state, val]) => [state, val]));
 ```
 
@@ -197,47 +213,94 @@ const states = feature(us, us.objects.states);
 ```
 
 ```js
-const mapH = 480;
+const mapH = 520;
+const mapInnerH = 480;
 const maxVal = d3.max(byState, ([, v]) => v.total) || 1;
-const color = d3.scaleSequential(d3.interpolateBlues).domain([0, maxVal]);
-const projection = d3.geoAlbersUsa().fitSize([width, mapH], states);
+const color = d3.scaleSequentialSqrt(d3.interpolateBlues)
+  .domain([0, maxVal]);
+const projection = d3.geoAlbersUsa().fitSize([width, mapInnerH], states);
 const path = d3.geoPath().projection(projection);
 
 const mapSvg = d3.create("svg").attr("width", width).attr("height", mapH);
 
 const mapContainer = htl.html`
   <style>
+    #map-wrapper {
+      position: relative;
+    }
+
     #tooltip-map {
-      font: 10pt sans-serif;
-      background-color: white;
-      border: 1pt solid grey;
-      padding: 5px;
-      box-shadow: 3px 3px 3px darkgrey;
-      max-width: 40ch;
-      z-index: 1;
+      font: 13px sans-serif;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid #d6d6d6;
+      border-radius: 6px;
+      padding: 8px 10px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+      line-height: 1.25;
+      color: #222;
+      min-width: 145px;
+      z-index: 10;
       visibility: hidden;
+      display: none;
       position: absolute;
       pointer-events: none;
     }
+
+    #tooltip-map .tooltip-title {
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    #tooltip-map .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+    }
   </style>
-  <div id="tooltip-map"></div>
-  ${mapSvg.node()}
+
+  <div id="map-wrapper">
+    <div id="tooltip-map"></div>
+    ${mapSvg.node()}
+  </div>
 `;
 
 const mapTooltip = d3.select(mapContainer).select("#tooltip-map");
+const mapWrapper = d3.select(mapContainer).select("#map-wrapper").node();
 
 function attachMapTooltip(selection, tooltip, htmlFn) {
+  function positionTooltip(event) {
+    const rect = mapWrapper.getBoundingClientRect();
+
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    tooltip
+      .style("left", `${x + 10}px`)
+      .style("top", `${y + 10}px`);
+  }
+
   selection
     .on("mouseover", function(event, d) {
       d3.select(this).attr("stroke", "#333").attr("stroke-width", 1.5);
-      tooltip.style("visibility", "visible").html(htmlFn(d));
+
+      tooltip
+        .html(htmlFn(d));
+
+      positionTooltip(event);
+
+      tooltip
+        .style("visibility", "visible")
+        .style("display", "block");
     })
     .on("mousemove", function(event) {
-      tooltip.style("left", (event.pageX + 12) + "px").style("top", (event.pageY - 28) + "px");
+      positionTooltip(event);
     })
     .on("mouseout", function() {
-      d3.select(this).attr("stroke", "#fff").attr("stroke-width", 0.5);
-      tooltip.style("visibility", "hidden");
+      d3.select(this).attr("stroke", "#54555c").attr("stroke-width", 0.5);
+
+      tooltip
+        .style("visibility", "hidden")
+        .style("display", "none");
     });
 }
 
@@ -252,13 +315,44 @@ mapSvg.selectAll("path.state")
         const val = stateMap.get(d.properties.name) || stateMap.get(abbr);
         return val ? color(val.total) : "#eee";
       })
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 0.5)
+      .attr("stroke", "#54555c")
+      .attr("stroke-width", 0.6)
       .call(sel => attachMapTooltip(sel, mapTooltip, d => {
         const abbr = stateNameToAbbr[d.properties.name];
         const val = stateMap.get(d.properties.name) || stateMap.get(abbr);
-        return `<strong>${d.properties.name}</strong><br/>Laid off: ${val ? d3.format(",")(val.total) : 0}<br/>Events: ${val ? val.count : 0}`;
-      })),
+        return `
+        <div class="tooltip-title">${d.properties.name}</div>
+
+        <div class="tooltip-row">
+          <span>Total laid off</span>
+          <strong>${val ? d3.format(",")(val.total) : 0}</strong>
+        </div>
+
+        <div class="tooltip-row">
+          <span>Share of U.S.</span>
+          <strong>${val && usTotalLaidOff ? d3.format(".1%")(val.total / usTotalLaidOff) : "0.0%"}</strong>
+        </div>
+
+        <div class="tooltip-row">
+          <span>Companies affected</span>
+          <strong>${val ? d3.format(",")(val.companiesAffected) : 0}</strong>
+        </div>
+
+        <div class="tooltip-row">
+          <span>Top company</span>
+          <strong>${val && val.topCompany ? val.topCompany : "None"}</strong>
+        </div>
+      `;
+      }))
+    .on("click", function(event, d) {
+      const state = d.properties.name;
+
+      mapTooltip
+      .style("visibility", "hidden")
+      .style("display", "none");
+
+      setPickedStateFromMap(pickedState === state ? "All States" : state);
+    }),
     update => update
       .attr("fill", d => {
         const abbr = stateNameToAbbr[d.properties.name];
@@ -268,36 +362,90 @@ mapSvg.selectAll("path.state")
     exit => exit.remove()
   );
 
-const legendW = 200, legendH = 12;
-const legendX = width - legendW - 20;
-const defs = mapSvg.append("defs");
-const grad = defs.append("linearGradient").attr("id", "legend-grad");
-grad.selectAll("stop").data(d3.range(0, 1.01, 0.1)).join("stop")
-  .attr("offset", d => d).attr("stop-color", d => color(d * maxVal));
-const lg = mapSvg.append("g").attr("transform", `translate(${legendX}, ${mapH - 40})`);
-lg.append("rect").attr("width", legendW).attr("height", legendH).style("fill", "url(#legend-grad)");
-lg.append("text").attr("y", legendH + 14).style("font-size", "11px").text("0");
-lg.append("text").attr("x", legendW).attr("y", legendH + 14).style("font-size", "11px")
-  .attr("text-anchor", "end").text(d3.format(",")(maxVal) + " laid off");
+const legendW = 240;
+const legendH = 10;
+const legendX = width - legendW - 80;
+const legendY = mapInnerH + 9;
 
+const defs = mapSvg.append("defs");
+
+const grad = defs.append("linearGradient")
+  .attr("id", "legend-grad")
+  .attr("x1", "0%")
+  .attr("x2", "100%")
+  .attr("y1", "0%")
+  .attr("y2", "0%");
+
+grad.selectAll("stop")
+  .data(d3.range(0, 1.01, 0.1))
+  .join("stop")
+  .attr("offset", d => `${d * 100}%`)
+  .attr("stop-color", d => color(d * maxVal));
+
+const lg = mapSvg.append("g")
+  .attr("class", "map-legend")
+  .attr("transform", `translate(${legendX}, ${legendY})`);
+
+lg.append("text")
+  .attr("x", 0)
+  .attr("y", -8)
+  .style("font-size", "12px")
+  .style("font-weight", "600")
+  .style("fill", "#333")
+  .text("Total layoffs by state");
+
+lg.append("rect")
+  .attr("width", legendW)
+  .attr("height", legendH)
+  .attr("rx", 2)
+  .style("fill", "url(#legend-grad)");
+
+const legendScale = d3.scaleLinear()
+  .domain([0, maxVal])
+  .range([0, legendW]);
+
+const legendAxis = d3.axisBottom(legendScale)
+  .tickValues([0, maxVal / 2, maxVal])
+  .tickFormat(d => d3.format(",.0f")(d))
+  .tickSize(4);
+
+lg.append("g")
+  .attr("transform", `translate(0, ${legendH})`)
+  .call(legendAxis)
+  .call(g => g.select(".domain").remove())
+  .call(g => g.selectAll("text")
+    .style("font-size", "10px")
+    .style("fill", "#555"))
+  .call(g => g.selectAll("line")
+    .style("stroke", "#777"));
 display(mapContainer);
 ```
 
 ---
 
 <h2 class="section-title">Top Companies by State</h2>
-<p class="section-sub">Select a state to see which companies laid off the most workers there.</p>
+<p class="section-sub">Click a state on the map, or use the dropdown, to see which companies laid off the most workers there.</p>
 
 ```js
 const validStates = new Set(["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming","District of Columbia"]);
+
 const stateList = ["All States", ...Array.from(new Set(usData.map(d => d.USState).filter(s => s && validStates.has(s)))).sort()];
+
 const stateSelector = Inputs.select(stateList, { label: "State", value: "All States" });
+
+function setPickedStateFromMap(state) {
+  stateSelector.value = state;
+  stateSelector.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
 const pickedState = Generators.input(stateSelector);
 display(stateSelector);
 ```
 
 ```js
-const companySource = pickedState === "All States" ? usData : usData.filter(d => d.USState === pickedState);
+const companySource = pickedState === "All States"
+  ? usData
+  : usData.filter(d => d.USState === pickedState);
 
 const companyData = d3.rollups(
   companySource,
@@ -347,8 +495,8 @@ function attachBarTooltip(selection, tooltip, htmlFn) {
       tooltip.style("left", (event.pageX + 12) + "px").style("top", (event.pageY - 28) + "px");
     })
     .on("mouseout", function() {
-      d3.select(this).attr("fill", "steelblue");
-      tooltip.style("visibility", "hidden");
+      d3.select(this).attr("stroke", "#54555c").attr("stroke-width", 0.6);
+      tooltip.style("visibility", "hidden").style("display", "none");
     });
 }
 
