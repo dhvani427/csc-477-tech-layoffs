@@ -144,86 +144,125 @@ const fullEnd = d3.max(data, d =>
   typeof d.Date_layoffs === "string" ? new Date(d.Date_layoffs) : d.Date_layoffs
 );
 
-const currentStart = start || fullStart;
-const currentEnd = end || fullEnd;
+const monthValue = d3.timeFormat("%Y-%m");
 
-const isoDate = d3.timeFormat("%Y-%m-%d");
-const prettyMonth = d3.timeFormat("%b %Y");
+// Reuse the same floating bar instead of recreating it
+let floatingBar = document.querySelector("#floating-date-bar");
 
-const stickyStartInput = html`<input type="date" value=${isoDate(currentStart)} min=${isoDate(fullStart)} max=${isoDate(fullEnd)}>`;
-const stickyEndInput = html`<input type="date" value=${isoDate(currentEnd)} min=${isoDate(fullStart)} max=${isoDate(fullEnd)}>`;
-const stickyResetButton = html`<button>Reset</button>`;
+if (!floatingBar) {
+  const stickyStartInput = html`<input class="sticky-start-month" type="month" value=${monthValue(fullStart)} min=${monthValue(fullStart)} max=${monthValue(fullEnd)}>`;
+  const stickyEndInput = html`<input class="sticky-end-month" type="month" value=${monthValue(fullEnd)} min=${monthValue(fullStart)} max=${monthValue(fullEnd)}>`;
+  const stickyResetButton = html`<button>Reset</button>`;
 
-function updateStickyDateRange() {
-  const newStart = new Date(stickyStartInput.value + "T00:00:00");
-  const newEnd = new Date(stickyEndInput.value + "T23:59:59");
+  function updateStickyDateRange() {
+    const newStart = new Date(stickyStartInput.value + "-01T00:00:00");
 
-  if (newStart <= newEnd) {
-    setBrush([newStart, newEnd]);
+    const [endYear, endMonth] = stickyEndInput.value.split("-").map(Number);
+    const newEnd = new Date(endYear, endMonth, 0, 23, 59, 59);
 
-    if (typeof brushG !== "undefined" && typeof brush !== "undefined" && typeof x !== "undefined") {
-      brushG.call(brush.move, [x(newStart), x(newEnd)]);
+    if (newStart <= newEnd) {
+      setBrush([newStart, newEnd]);
+
+      if (typeof brushG !== "undefined" && typeof brush !== "undefined" && typeof x !== "undefined") {
+        brushG.call(brush.move, [x(newStart), x(newEnd)]);
+      }
+    }
+  }
+
+  stickyStartInput.addEventListener("input", updateStickyDateRange);
+  stickyEndInput.addEventListener("input", updateStickyDateRange);
+
+  stickyResetButton.addEventListener("click", () => {
+    setBrush([null, null]);
+
+    stickyStartInput.value = monthValue(fullStart);
+    stickyEndInput.value = monthValue(fullEnd);
+
+    if (typeof brushG !== "undefined" && typeof brush !== "undefined") {
+      brushG.call(brush.move, null);
+    }
+  });
+
+  floatingBar = html`
+    <div id="floating-date-bar" class="floating-date-bar">
+      <div class="floating-date-left">
+        <div class="floating-kicker">Date filter</div>
+        <div class="floating-range">All time</div>
+      </div>
+
+      <div class="floating-date-controls">
+        <div class="month-field">
+          <span>Start</span>
+          ${stickyStartInput}
+        </div>
+
+        <div class="month-field">
+          <span>End</span>
+          ${stickyEndInput}
+        </div>
+
+        ${stickyResetButton}
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(floatingBar);
+}
+
+// Always update visibility, even if the bar already existed
+function shouldShowFloatingBar() {
+  const timeline = document.querySelector("#timeline-watch");
+  if (!timeline) return false;
+
+  const rect = timeline.getBoundingClientRect();
+  return rect.bottom < 120;
+}
+
+function updateFloatingBarVisibility() {
+  const bar = document.querySelector("#floating-date-bar");
+  if (!bar) return;
+
+  bar.classList.toggle("is-visible", shouldShowFloatingBar());
+}
+
+updateFloatingBarVisibility();
+requestAnimationFrame(updateFloatingBarVisibility);
+
+// Prevent duplicate scroll listeners
+if (window.__floatingDateBarScrollHandler) {
+  window.removeEventListener("scroll", window.__floatingDateBarScrollHandler);
+  window.removeEventListener("resize", window.__floatingDateBarScrollHandler);
+}
+
+window.__floatingDateBarScrollHandler = updateFloatingBarVisibility;
+
+window.addEventListener("scroll", window.__floatingDateBarScrollHandler, { passive: true });
+window.addEventListener("resize", window.__floatingDateBarScrollHandler);
+
+```
+```js
+{
+  const bar = document.querySelector("#floating-date-bar");
+
+  if (bar) {
+    const prettyMonth = d3.timeFormat("%b %Y");
+    const monthValue = d3.timeFormat("%Y-%m");
+
+    const rangeLabel = bar.querySelector(".floating-range");
+    const startInput = bar.querySelector(".sticky-start-month");
+    const endInput = bar.querySelector(".sticky-end-month");
+
+    if (start && end) {
+      rangeLabel.textContent = `${prettyMonth(start)} – ${prettyMonth(end)}`;
+      startInput.value = monthValue(start);
+      endInput.value = monthValue(end);
+    } else {
+      rangeLabel.textContent = "All time";
+      startInput.value = monthValue(fullStart);
+      endInput.value = monthValue(fullEnd);
     }
   }
 }
-
-stickyStartInput.addEventListener("input", updateStickyDateRange);
-stickyEndInput.addEventListener("input", updateStickyDateRange);
-
-stickyResetButton.addEventListener("click", () => {
-  setBrush([null, null]);
-
-  if (typeof brushG !== "undefined" && typeof brush !== "undefined") {
-    brushG.call(brush.move, null);
-  }
-});
-
-const floatingBar = html`
-  <div id="floating-date-bar" class="floating-date-bar">
-    <div class="floating-date-left">
-      <div class="floating-kicker">Date filter</div>
-      <div class="floating-range">
-        ${start && end ? `${prettyMonth(start)} – ${prettyMonth(end)}` : "All time"}
-      </div>
-    </div>
-
-    <div class="floating-date-controls">
-      <label>Start ${stickyStartInput}</label>
-      <label>End ${stickyEndInput}</label>
-      ${stickyResetButton}
-    </div>
-  </div>
-`;
-
-display(floatingBar);
-
-function updateFloatingBarVisibility() {
-  const timeline = document.querySelector("#timeline-watch");
-  const bar = document.querySelector("#floating-date-bar");
-
-  if (!timeline || !bar) return;
-
-  const rect = timeline.getBoundingClientRect();
-
-  // Show after the first chart is mostly above the viewport.
-  if (rect.bottom < 120) {
-    bar.classList.add("is-visible");
-  } else {
-    bar.classList.remove("is-visible");
-  }
-}
-
-setTimeout(updateFloatingBarVisibility, 0);
-requestAnimationFrame(updateFloatingBarVisibility);
-
-window.addEventListener("scroll", updateFloatingBarVisibility, { passive: true });
-window.addEventListener("resize", updateFloatingBarVisibility);
-
-invalidation.then(() => {
-  window.removeEventListener("scroll", updateFloatingBarVisibility);
-  window.removeEventListener("resize", updateFloatingBarVisibility);
-});
-
 ```
 
 ```js
@@ -1572,7 +1611,7 @@ hr { margin: 2rem 0; }
   font-weight: 600;
 }
 
-.floating-date-controls input {
+.floating-date-controls input [type="month"] {
   margin-left: 0.25rem;
   padding: 0.35rem 0.5rem;
   border: 1px solid #b9cbe0;
@@ -1597,10 +1636,6 @@ hr { margin: 2rem 0; }
   cursor: pointer;
 }
 
-.floating-date-controls button:hover {
-  background: #2f6f9f;
-}
-
 .floating-date-bar {
   position: fixed;
   top: 0.75rem;
@@ -1608,14 +1643,14 @@ hr { margin: 2rem 0; }
   transform: translate(-50%, -130%);
   z-index: 99999;
 
-  width: min(980px, calc(100vw - 2rem));
+  width: min(820px, calc(100vw - 2rem));
 
-  background: rgba(255, 255, 255, 0.97);
+  background: rgba(255, 255, 255, 0.98);
   border: 1px solid #cfe0f3;
   border-left: 5px solid steelblue;
-  border-radius: 14px;
+  border-radius: 16px;
 
-  padding: 0.75rem 1rem;
+  padding: 0.65rem 0.9rem;
 
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
   backdrop-filter: blur(10px);
@@ -1623,16 +1658,102 @@ hr { margin: 2rem 0; }
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
 
   opacity: 0;
   pointer-events: none;
-  transition: opacity 180ms ease, transform 180ms ease;
+  transition: none;
 }
 
 .floating-date-bar.is-visible {
   opacity: 1;
   pointer-events: auto;
   transform: translate(-50%, 0);
+}
+
+.floating-date-left {
+  min-width: 190px;
+}
+
+.floating-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: steelblue;
+  margin-bottom: 0.2rem;
+}
+
+.floating-range {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1f2937;
+  white-space: nowrap;
+}
+
+.floating-date-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: nowrap;
+}
+
+.month-field {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+
+  background: #f8fafc;
+  border: 1px solid #d8e5f2;
+  border-radius: 999px;
+
+  padding: 0.28rem 0.45rem 0.28rem 0.7rem;
+}
+
+.month-field span {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.month-field input {
+  width: 8.2rem;
+  border: none;
+  background: transparent;
+  color: #1f2937;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 0.15rem 0.1rem;
+}
+
+.month-field input:focus {
+  outline: none;
+}
+
+.floating-date-controls button {
+  padding: 0.47rem 0.85rem;
+  border: 1px solid steelblue;
+  border-radius: 999px;
+  background: steelblue;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.floating-date-controls button:hover {
+  background: #2f6f9f;
+}
+
+@media (max-width: 760px) {
+  .floating-date-bar {
+    width: calc(100vw - 1rem);
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .floating-date-controls {
+    flex-wrap: wrap;
+  }
 }
 </style>
