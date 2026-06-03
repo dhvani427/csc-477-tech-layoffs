@@ -650,7 +650,7 @@ const heatData = data.filter(d => d.Country === "USA" && d.USState && String(d.U
 const heatMetric = Inputs.select(
   new Map([
     ["Total laid off", "total"],
-    ["% of workforce cut", "pct"],
+    ["Total companies", "companies"],
     ["Number of events", "events"]
   ]),
   { label: "Metric", value: "total" }
@@ -732,7 +732,7 @@ function getCellValue(stage, col) {
   const r = rollup.get(`${stage}|${col}`);
   if (!r) return 0;
   if (metric === "total") return r.total;
-  if (metric === "pct") return r.pctCount > 0 ? r.pctSum / r.pctCount : 0;
+  if (metric === "companies") return r.companies ? r.companies.size : 0;
   return r.events;
 }
 
@@ -753,17 +753,17 @@ function cellTextColor(val) {
 
 function formatCellVal(val) {
   if (metric === "total") return val === 0 ? "" : val >= 1000 ? `${Math.round(val / 1000)}k` : Math.round(val);
-  if (metric === "pct") return val === 0 ? "" : `${val.toFixed(1)}%`;
+  if (metric === "companies") return val === 0 ? "" : val;
   return val === 0 ? "" : val;
 }
 
 function formatTooltipVal(val) {
   if (metric === "total") return d3.format(",")(Math.round(val));
-  if (metric === "pct") return `${val.toFixed(1)}%`;
+  if (metric === "companies") return val;
   return val;
 }
 
-const metricLabel = { total: "Total laid off", pct: "Avg % of workforce", events: "Layoff events" }[metric];
+const metricLabel = { total: "Total laid off", companies: "Unique companies", events: "Layoff events" }[metric];
 ```
 
 ```js
@@ -892,13 +892,16 @@ activeStages.forEach((stage, si) => {
       })
       .on("mousemove", function(event) {
         const tipWidth = 220;
-        const flipped = event.clientX + tipWidth + 12 > window.innerWidth;
+        const bounds = heatContainer.querySelector("svg").getBoundingClientRect();
+        const x = event.clientX - bounds.left;
+        const y = event.clientY - bounds.top;
+        const flipped = x + tipWidth + 12 > bounds.width;
         heatTooltip
-          .style("left", flipped ? (event.clientX - tipWidth - 12) + "px" : (event.clientX + 12) + "px")
-          .style("top", (event.clientY - 28) + "px");
+          .style("left", flipped ? (x - tipWidth - 12) + "px" : (x + 12) + "px")
+          .style("top", (y - 28) + "px");
       })
       .on("mouseout", function() {
-        d3.select(this).attr("stroke", null);
+        d3.select(this).attr("stroke", "none").attr("stroke-width", 0);
         heatTooltip.style("visibility", "hidden");
       });
   });
