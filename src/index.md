@@ -641,11 +641,10 @@ const companyData = d3.rollups(
 ---
 
 <h2 class="section-title">Layoffs by Stage</h2>
-<p class="section-sub">Select a year and metric to explore how layoffs shifted across funding stages over time."</p>
+<p class="section-sub">Select a year and metric to explore how layoffs shifted across funding stages over time.</p>
 
 ```js
-const rawHeat = await FileAttachment("data/Cleaned_tech_layoffs.csv").csv({ typed: true });
-const heatData = rawHeat.filter(d => d.Stage && d.Stage.trim() !== "" && d.Laid_Off > 0 && d.Year >= 2020 && d.Year <= 2025);
+const heatData = data.filter(d => d.Country === "USA" && d.USState && String(d.USState).trim() !== "" && d.Stage && d.Stage.trim() !== "" && d.Laid_Off > 0 && d.Year >= 2020 && d.Year <= 2025);
 ```
 ```js
 const heatMetric = Inputs.select(
@@ -782,6 +781,7 @@ const heatSvg = d3.create("svg")
 
 const heatContainer = htl.html`
   <div style="position: relative;">
+  <style>
     #tooltip-heat {
       font: 10pt sans-serif;
       background-color: white;
