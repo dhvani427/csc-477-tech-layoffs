@@ -150,8 +150,8 @@ display(statsDiv);
 
 ---
 
-<h2 class="section-title">Layoffs by State</h2>
-<p class="section-sub">Brush the timeline above to update the map.</p>
+<h2 class="section-title">U.S. Layoffs by State and Company</h2>
+<p class="section-sub no-wrap">Brush the timeline above, then click a state on the map or use the dropdown to explore top companies.</p>
 
 ```js
 // Filter to US only for the map and bar chart, using the selected timeline range from the top chart
@@ -231,16 +231,24 @@ function setPickedStateFromMap(state) {
 ```
 
 ```js
-const mapH = 520;
-const mapInnerH = 480;
+const mapW = 560;
+const mapH = 420;
+const mapInnerH = 370;
+
 const maxVal = d3.max(byState, ([, v]) => v.total) || 1;
+
 const color = d3.scaleSequentialPow(t => d3.interpolateBlues(0.08 + 0.92 * t))
   .exponent(0.35)
   .domain([0, maxVal]);
-const projection = d3.geoAlbersUsa().fitSize([width, mapInnerH], states);
+
+const projection = d3.geoAlbersUsa().fitSize([mapW, mapInnerH], states);
 const path = d3.geoPath().projection(projection);
 
-const mapSvg = d3.create("svg").attr("width", width).attr("height", mapH);
+const mapSvg = d3.create("svg")
+  .attr("width", "100%")
+  .attr("height", mapH)
+  .attr("viewBox", `0 0 ${mapW} ${mapH}`)
+  .style("display", "block");
 
 const mapContainer = htl.html`
   <style>
@@ -387,10 +395,10 @@ mapSvg.selectAll("path.state")
     exit => exit.remove()
   );
 
-const legendW = 240;
+const legendW = 220;
 const legendH = 10;
-const legendX = width - legendW - 80;
-const legendY = mapInnerH + 9;
+const legendX = mapW - legendW - 25;
+const legendY = mapInnerH + 12;
 
 const defs = mapSvg.append("defs");
 
@@ -443,30 +451,17 @@ lg.append("g")
     .style("fill", "#555"))
   .call(g => g.selectAll("line")
     .style("stroke", "#777"));
-display(mapContainer);
 ```
 
----
-
-<h2 class="section-title">Top Companies by State</h2>
-<p class="section-sub">Click a state on the map, or use the dropdown, to see which companies laid off the most workers there.</p>
 
 ```js
-display(stateSelector);
-```
+const selectedStateAbbr = stateNameToAbbr[selectedState];
 
-```js
-const companySourceBase = selectedState === "All States"
+const companySource = selectedState === "All States"
   ? usData
-  : usData.filter(d => d.USState === selectedState);
-
-const companySource = companySourceBase.filter(d => {
-  const t = typeof d.Date_layoffs === "string"
-    ? new Date(d.Date_layoffs)
-    : d.Date_layoffs;
-
-  return t >= scatterDateRange[0] && t <= scatterDateRange[1];
-});
+  : usData.filter(d =>
+      d.USState === selectedState || d.USState === selectedStateAbbr
+    );
 
 const companyData = d3.rollups(
   companySource,
@@ -478,174 +473,200 @@ const companyData = d3.rollups(
 .slice(0, 15);
 ```
 
-
 ```js
-{
+
+const barChartNode = (() => {
   if (companyData.length === 0) {
-    const empty = html`<div class="empty-state">
+    return html`<div class="empty-state">
       No layoff records found for ${selectedState} in the selected time range.
     </div>`;
-    display(empty);
-  } else {
-    const barMargin = { top: 10, right: 30, bottom: 30, left: 160 };
-    const barW = width - barMargin.left - barMargin.right;
-    const barH = companyData.length * 28;
+  }
 
-    const barSvg = d3.create("svg")
-      .attr("width", width)
-      .attr("height", barH + barMargin.top + barMargin.bottom);
+  const barMargin = { top: 10, right: 20, bottom: 35, left: 115 };
+  const barChartW = 500;
+  const barW = barChartW - barMargin.left - barMargin.right;
+  const barH = companyData.length * 28;
 
-    const barContainer = htl.html`
-      <style>
-        #bar-wrapper {
-          position: relative;
-        }
+  const barSvg = d3.create("svg")
+    .attr("width", "100%")
+    .attr("height", barH + barMargin.top + barMargin.bottom)
+    .attr("viewBox", `0 0 ${barChartW} ${barH + barMargin.top + barMargin.bottom}`)
+    .style("display", "block");
 
-        #tooltip-bar {
-          font: 13px sans-serif;
-          background: rgba(255, 255, 255, 0.96);
-          border: 1px solid #d6d6d6;
-          border-radius: 6px;
-          padding: 8px 10px;
-          box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
-          line-height: 1.25;
-          color: #222;
-          min-width: 165px;
-          z-index: 10;
-          visibility: hidden;
-          display: none;
-          position: absolute;
-          pointer-events: none;
-        }
-
-        #tooltip-bar .tooltip-title {
-          font-weight: 700;
-          margin-bottom: 5px;
-        }
-
-        #tooltip-bar .tooltip-row {
-          display: flex;
-          justify-content: space-between;
-          gap: 14px;
-        }
-      </style>
-
-      <div id="bar-wrapper">
-        <div id="tooltip-bar"></div>
-        ${barSvg.node()}
-      </div>
-    `;
-
-    const barTooltip = d3.select(barContainer).select("#tooltip-bar");
-    const barWrapper = d3.select(barContainer).select("#bar-wrapper").node();
-
-    const selectedStateTotal = d3.sum(companyData, d => d.total);
-
-    function attachBarTooltip(selection, tooltip, htmlFn) {
-      function positionTooltip(event) {
-        const rect = barWrapper.getBoundingClientRect();
-
-        let x = event.clientX - rect.left + 10;
-        let y = event.clientY - rect.top + 10;
-
-        const tipWidth = 230;
-        const tipHeight = 120;
-
-        if (x + tipWidth > rect.width) x = event.clientX - rect.left - tipWidth - 10;
-        if (y + tipHeight > rect.height) y = event.clientY - rect.top - tipHeight - 10;
-
-        tooltip
-          .style("left", `${Math.max(6, x)}px`)
-          .style("top", `${Math.max(6, y)}px`);
+  const barContainer = htl.html`
+    <style>
+      #bar-wrapper {
+        position: relative;
+        width: 100%;
       }
 
-      selection
-        .on("mouseover", function(event, d) {
-          d3.select(this).attr("fill", "#2a5f8f");
+      #tooltip-bar {
+        font: 13px sans-serif;
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid #d6d6d6;
+        border-radius: 6px;
+        padding: 8px 10px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+        line-height: 1.25;
+        color: #222;
+        min-width: 165px;
+        z-index: 10;
+        visibility: hidden;
+        display: none;
+        position: absolute;
+        pointer-events: none;
+      }
 
-          tooltip.html(htmlFn(d));
-          positionTooltip(event);
+      #tooltip-bar .tooltip-title {
+        font-weight: 700;
+        margin-bottom: 5px;
+      }
 
-          tooltip
-            .style("visibility", "visible")
-            .style("display", "block");
-        })
-        .on("mousemove", function(event) {
-          positionTooltip(event);
-        })
-        .on("mouseout", function() {
-          d3.select(this).attr("fill", "steelblue");
+      #tooltip-bar .tooltip-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+      }
+    </style>
 
-          tooltip
-            .style("visibility", "hidden")
-            .style("display", "none");
-        });
+    <div id="bar-wrapper">
+      <div id="tooltip-bar"></div>
+      ${barSvg.node()}
+    </div>
+  `;
+
+  const barTooltip = d3.select(barContainer).select("#tooltip-bar");
+  const barWrapper = d3.select(barContainer).select("#bar-wrapper").node();
+
+  const selectedStateTotal = d3.sum(companyData, d => d.total);
+
+  function attachBarTooltip(selection, tooltip, htmlFn) {
+    function positionTooltip(event) {
+      const rect = barWrapper.getBoundingClientRect();
+
+      let x = event.clientX - rect.left + 10;
+      let y = event.clientY - rect.top + 10;
+
+      const tipWidth = 230;
+      const tipHeight = 120;
+
+      if (x + tipWidth > rect.width) x = event.clientX - rect.left - tipWidth - 10;
+      if (y + tipHeight > rect.height) y = event.clientY - rect.top - tipHeight - 10;
+
+      tooltip
+        .style("left", `${Math.max(6, x)}px`)
+        .style("top", `${Math.max(6, y)}px`);
     }
 
-    const bg = barSvg.append("g")
-      .attr("transform", `translate(${barMargin.left},${barMargin.top})`);
+    selection
+      .on("mouseover", function(event, d) {
+        d3.select(this).attr("fill", "#2a5f8f");
 
-    const xBar = d3.scaleLinear()
-      .domain([0, d3.max(companyData, d => d.total) || 1])
-      .range([0, barW]);
+        tooltip.html(htmlFn(d));
+        positionTooltip(event);
 
-    const yBar = d3.scaleBand()
-      .domain(companyData.map(d => d.company))
-      .range([0, barH])
-      .padding(0.2);
+        tooltip
+          .style("visibility", "visible")
+          .style("display", "block");
+      })
+      .on("mousemove", function(event) {
+        positionTooltip(event);
+      })
+      .on("mouseout", function() {
+        d3.select(this).attr("fill", "steelblue");
 
-    bg.append("g")
-      .call(d3.axisLeft(yBar).tickSize(0))
-      .select(".domain")
-      .remove();
-
-    bg.append("g")
-      .attr("transform", `translate(0,${barH})`)
-      .call(d3.axisBottom(xBar).ticks(5).tickFormat(d3.format(",")));
-
-    bg.selectAll("rect.bar")
-      .data(companyData)
-      .join("rect")
-      .attr("class", "bar")
-      .attr("y", d => yBar(d.company))
-      .attr("width", d => xBar(d.total))
-      .attr("height", yBar.bandwidth())
-      .attr("fill", "steelblue")
-      .attr("rx", 3)
-      .call(sel => attachBarTooltip(sel, barTooltip, d => {
-        const rank = companyData.findIndex(x => x.company === d.company) + 1;
-        const share = selectedStateTotal ? d.total / selectedStateTotal : 0;
-
-        return `
-          <div class="tooltip-title">${d.company}</div>
-
-          <div class="tooltip-row">
-            <span>State</span>
-            <strong>${selectedState === "All States" ? "All U.S." : selectedState}</strong>
-          </div>
-
-          <div class="tooltip-row">
-            <span>Rank</span>
-            <strong>#${rank}</strong>
-          </div>
-
-          <div class="tooltip-row">
-            <span>Laid off</span>
-            <strong>${d3.format(",")(d.total)}</strong>
-          </div>
-
-          <div class="tooltip-row">
-            <span>Share</span>
-            <strong>${d3.format(".1%")(share)}</strong>
-          </div>
-        `;
-      }));
-
-    display(barContainer);
+        tooltip
+          .style("visibility", "hidden")
+          .style("display", "none");
+      });
   }
-}
+
+  const bg = barSvg.append("g")
+    .attr("transform", `translate(${barMargin.left},${barMargin.top})`);
+
+  const xBar = d3.scaleLinear()
+    .domain([0, d3.max(companyData, d => d.total) || 1])
+    .range([0, barW]);
+
+  const yBar = d3.scaleBand()
+    .domain(companyData.map(d => d.company))
+    .range([0, barH])
+    .padding(0.2);
+
+  bg.append("g")
+    .call(d3.axisLeft(yBar).tickSize(0))
+    .select(".domain")
+    .remove();
+
+  bg.append("g")
+    .attr("transform", `translate(0,${barH})`)
+    .call(d3.axisBottom(xBar).ticks(5).tickFormat(d3.format(",")));
+
+  bg.selectAll("rect.bar")
+    .data(companyData)
+    .join("rect")
+    .attr("class", "bar")
+    .attr("y", d => yBar(d.company))
+    .attr("width", d => xBar(d.total))
+    .attr("height", yBar.bandwidth())
+    .attr("fill", "steelblue")
+    .attr("rx", 3)
+    .call(sel => attachBarTooltip(sel, barTooltip, d => {
+      const rank = companyData.findIndex(x => x.company === d.company) + 1;
+      const share = selectedStateTotal ? d.total / selectedStateTotal : 0;
+
+      return `
+        <div class="tooltip-title">${d.company}</div>
+
+        <div class="tooltip-row">
+          <span>State</span>
+          <strong>${selectedState === "All States" ? "All U.S." : selectedState}</strong>
+        </div>
+
+        <div class="tooltip-row">
+          <span>Rank</span>
+          <strong>#${rank}</strong>
+        </div>
+
+        <div class="tooltip-row">
+          <span>Laid off</span>
+          <strong>${d3.format(",")(d.total)}</strong>
+        </div>
+
+        <div class="tooltip-row">
+          <span>Share</span>
+          <strong>${d3.format(".1%")(share)}</strong>
+        </div>
+      `;
+    }));
+
+  return barContainer;
+})();
 ```
 
+```js
+display(html`
+  <div class="state-dashboard">
+    <div class="state-dashboard-header">
+      ${stateSelector}
+    </div>
+
+    <div class="state-dashboard-grid">
+      <div class="state-panel">
+        <h3>Layoffs by State</h3>
+        <p class="section-sub">Brush the timeline above to update the map.</p>
+        ${mapContainer}
+      </div>
+
+      <div class="state-panel">
+        <h3>Top Companies by State</h3>
+        <p class="section-sub">Click a state on the map, or use the dropdown.</p>
+        ${barChartNode}
+      </div>
+    </div>
+  </div>
+`);
+```
 ---
 
 <h2 class="section-title">Layoffs by Stage</h2>
@@ -1369,5 +1390,53 @@ hr { margin: 2rem 0; }
   border-radius: 8px;
   margin: 1rem 0;
   text-align: center;
+}
+.state-dashboard {
+  margin-top: 1rem;
+}
+
+.state-dashboard-header {
+  margin-bottom: 1rem;
+}
+
+.state-dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(560px, 1.15fr) minmax(420px, 0.85fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.state-panel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1rem;
+  min-width: 0;
+}
+
+.state-panel h3 {
+  margin-top: 0;
+  margin-bottom: 0.25rem;
+  font-size: 1.05rem;
+}
+
+.state-panel .section-sub {
+  margin-bottom: 0.5rem;
+}
+
+.state-dashboard-grid svg {
+  max-width: 100%;
+  display: block;
+}
+
+#map-wrapper,
+#bar-wrapper {
+  width: 100%;
+}
+
+@media (max-width: 1050px) {
+  .state-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
