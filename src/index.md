@@ -2,8 +2,9 @@
 toc: false
 ---
 
-<h1>Global Tech Layoffs Over Time</h1>
-<p class="subtitle">An interactive exploration of layoffs across tech companies worldwide from 2020–2025</p>
+<h1>US Tech Layoff Patterns</h1>
+<p class="subtitle" style="max-width: 700px;">The tech industry has undergone a dramatic shift from 2020 to 2025. From a hiring frenzy fueled by pandemic-era growth to one of the most sustained periods of workforce reduction in the sector's history, it affected companies at all different stages and across industries. The following visualizations use data aggregated from <a href="https://www.kaggle.com/datasets/ulrikeherold/tech-layoffs-2020-2024" target="_blank">Kaggle Tech Layoffs 2020-2025</a>, covering over 1,000 layoff events across US-based tech companies between 2020 and 2025.
+We attempt to present this information to help readers understand where layoffs happened, which companies and funding stages were most affected, and how major economic events shaped the industry's workforce over time.</p>
 
 ```js
 import * as d3 from "npm:d3";
@@ -805,8 +806,8 @@ display(html`
 ```
 ---
 
-<h2 class="section-title">Layoffs by Stage</h2>
-<p class="section-sub">Select a year and metric to explore how layoffs shifted across funding stages over time.</p>
+<h2 class="section-title">Layoffs by Funding Stage</h2>
+<p class="section-sub">The heatmap below shows US tech layoffs by funding stage and quarter, from seed-stage startups to public companies. Use the Metric dropdown to switch between total employees laid off, unique companies affected, and number of layoff events. Filter to a specific Year to zoom in on a single year's quarters. Hover over any cell to see the exact value and the top company for that stage and period.</p>
 
 ```js
 const heatData = data.filter(d => d.Country === "USA" && d.USState && String(d.USState).trim() !== "" && d.Stage && d.Stage.trim() !== "" && d.Laid_Off > 0 && d.Year >= 2020 && d.Year <= 2025);
@@ -1504,6 +1505,12 @@ Showing **${filtered.length}** US events: drag the timeline below to filter by d
   return svg.node();
 })()
 ```
+
+<h2 class="section-title">Summary</h2>
+<p class="section-sub">Through publicly available data, we were able to create a visualization that details the patterns found in tech layoffs in the US in the padt five years. We have seen that larger companies tend to go through more layoffs, but also have larger populations of employees. While several early stage start-ups went under, we were able to see how far their funding took them. This data revealed how closely related economic events and the tech industry are, an the over-hiring and overcorrection cycles that repeat themselves.</p>
+
+<h2 class="section-title">Credits</h2>
+<p class="section-sub">This project was created by Sinchana Shivaprasad, Ivy Van Zant, Kannan Jain and Dhvani Goel for CSC 477 (Data Visualization) taught by Dr. Kazerouni at Cal Poly SLO. Our dataset came from <a href="https://www.kaggle.com/datasets/ulrikeherold/tech-layoffs-2020-2024" target="_blank">Kaggle Tech Layoffs 2020-2025</a>.</p>
 
 <style>
 h1 { font-size: 2rem; margin-bottom: 0.25rem; pointer-events: none; }
