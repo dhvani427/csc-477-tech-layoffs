@@ -456,9 +456,17 @@ display(stateSelector);
 ```
 
 ```js
-const companySource = selectedState === "All States"
+const companySourceBase = selectedState === "All States"
   ? usData
   : usData.filter(d => d.USState === selectedState);
+
+const companySource = companySourceBase.filter(d => {
+  const t = typeof d.Date_layoffs === "string"
+    ? new Date(d.Date_layoffs)
+    : d.Date_layoffs;
+
+  return t >= scatterDateRange[0] && t <= scatterDateRange[1];
+});
 
 const companyData = d3.rollups(
   companySource,
