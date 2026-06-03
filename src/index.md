@@ -42,22 +42,24 @@ const H = 280;
 const svg = d3.create("svg").attr("width", width).attr("height", H + margin.top + margin.bottom);
 
 const container = htl.html`
-  <style>
-    #tooltip-timeline {
-      font: 10pt sans-serif;
-      background-color: white;
-      border: 1pt solid grey;
-      padding: 5px;
-      box-shadow: 3px 3px 3px darkgrey;
-      max-width: 40ch;
-      z-index: 1;
-      visibility: hidden;
-      position: absolute;
-      pointer-events: none;
-    }
-  </style>
-  <div id="tooltip-timeline"></div>
-  ${svg.node()}
+  <div id="timeline-watch" class="timeline-watch">
+    <style>
+      #tooltip-timeline {
+        font: 10pt sans-serif;
+        background-color: white;
+        border: 1pt solid grey;
+        padding: 5px;
+        box-shadow: 3px 3px 3px darkgrey;
+        max-width: 40ch;
+        z-index: 1;
+        visibility: hidden;
+        position: absolute;
+        pointer-events: none;
+      }
+    </style>
+    <div id="tooltip-timeline"></div>
+    ${svg.node()}
+  </div>
 `;
 
 const tooltip = d3.select(container).select("#tooltip-timeline");
@@ -122,6 +124,7 @@ brushG.select(".overlay")
 display(container);
 ```
 
+
 ```js
 const [start, end] = brushRange;
 const brushFiltered = (start && end)
@@ -130,7 +133,100 @@ const brushFiltered = (start && end)
       return t >= start && t <= end;
     })
   : data;
+```
 
+```js
+const fullStart = d3.min(data, d =>
+  typeof d.Date_layoffs === "string" ? new Date(d.Date_layoffs) : d.Date_layoffs
+);
+
+const fullEnd = d3.max(data, d =>
+  typeof d.Date_layoffs === "string" ? new Date(d.Date_layoffs) : d.Date_layoffs
+);
+
+const currentStart = start || fullStart;
+const currentEnd = end || fullEnd;
+
+const isoDate = d3.timeFormat("%Y-%m-%d");
+const prettyMonth = d3.timeFormat("%b %Y");
+
+const stickyStartInput = html`<input type="date" value=${isoDate(currentStart)} min=${isoDate(fullStart)} max=${isoDate(fullEnd)}>`;
+const stickyEndInput = html`<input type="date" value=${isoDate(currentEnd)} min=${isoDate(fullStart)} max=${isoDate(fullEnd)}>`;
+const stickyResetButton = html`<button>Reset</button>`;
+
+function updateStickyDateRange() {
+  const newStart = new Date(stickyStartInput.value + "T00:00:00");
+  const newEnd = new Date(stickyEndInput.value + "T23:59:59");
+
+  if (newStart <= newEnd) {
+    setBrush([newStart, newEnd]);
+
+    if (typeof brushG !== "undefined" && typeof brush !== "undefined" && typeof x !== "undefined") {
+      brushG.call(brush.move, [x(newStart), x(newEnd)]);
+    }
+  }
+}
+
+stickyStartInput.addEventListener("input", updateStickyDateRange);
+stickyEndInput.addEventListener("input", updateStickyDateRange);
+
+stickyResetButton.addEventListener("click", () => {
+  setBrush([null, null]);
+
+  if (typeof brushG !== "undefined" && typeof brush !== "undefined") {
+    brushG.call(brush.move, null);
+  }
+});
+
+const floatingBar = html`
+  <div id="floating-date-bar" class="floating-date-bar">
+    <div class="floating-date-left">
+      <div class="floating-kicker">Date filter</div>
+      <div class="floating-range">
+        ${start && end ? `${prettyMonth(start)} – ${prettyMonth(end)}` : "All time"}
+      </div>
+    </div>
+
+    <div class="floating-date-controls">
+      <label>Start ${stickyStartInput}</label>
+      <label>End ${stickyEndInput}</label>
+      ${stickyResetButton}
+    </div>
+  </div>
+`;
+
+display(floatingBar);
+
+function updateFloatingBarVisibility() {
+  const timeline = document.querySelector("#timeline-watch");
+  const bar = document.querySelector("#floating-date-bar");
+
+  if (!timeline || !bar) return;
+
+  const rect = timeline.getBoundingClientRect();
+
+  // Show after the first chart is mostly above the viewport.
+  if (rect.bottom < 120) {
+    bar.classList.add("is-visible");
+  } else {
+    bar.classList.remove("is-visible");
+  }
+}
+
+setTimeout(updateFloatingBarVisibility, 0);
+requestAnimationFrame(updateFloatingBarVisibility);
+
+window.addEventListener("scroll", updateFloatingBarVisibility, { passive: true });
+window.addEventListener("resize", updateFloatingBarVisibility);
+
+invalidation.then(() => {
+  window.removeEventListener("scroll", updateFloatingBarVisibility);
+  window.removeEventListener("resize", updateFloatingBarVisibility);
+});
+
+```
+
+```js
 const totalLaidOff = d3.sum(brushFiltered, d => d.Laid_Off);
 const numCompanies = new Set(brushFiltered.map(d => d.Company)).size;
 const peakCompany = d3.rollups(brushFiltered, v => d3.sum(v, d => d.Laid_Off), d => d.Company)
@@ -147,6 +243,7 @@ const statsDiv = html`<div class="stats-row">
 </div>`;
 display(statsDiv);
 ```
+
 
 ---
 
@@ -1438,5 +1535,104 @@ hr { margin: 2rem 0; }
   .state-dashboard-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Sticky date filter */
+/* Fixed date filter */
+
+
+/* Floating date filter appears only after timeline graph is passed */
+
+
+.floating-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: steelblue;
+  margin-bottom: 0.15rem;
+}
+
+.floating-range {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.floating-date-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.floating-date-controls label {
+  font-size: 0.85rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+.floating-date-controls input {
+  margin-left: 0.25rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #b9cbe0;
+  border-radius: 8px;
+  background: white;
+  color: #334155;
+}
+
+.floating-date-controls input:focus {
+  outline: none;
+  border-color: steelblue;
+  box-shadow: 0 0 0 3px rgba(70, 130, 180, 0.18);
+}
+
+.floating-date-controls button {
+  padding: 0.38rem 0.8rem;
+  border: 1px solid steelblue;
+  border-radius: 8px;
+  background: steelblue;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.floating-date-controls button:hover {
+  background: #2f6f9f;
+}
+
+.floating-date-bar {
+  position: fixed;
+  top: 0.75rem;
+  left: 50%;
+  transform: translate(-50%, -130%);
+  z-index: 99999;
+
+  width: min(980px, calc(100vw - 2rem));
+
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid #cfe0f3;
+  border-left: 5px solid steelblue;
+  border-radius: 14px;
+
+  padding: 0.75rem 1rem;
+
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+  backdrop-filter: blur(10px);
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.floating-date-bar.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
 }
 </style>
