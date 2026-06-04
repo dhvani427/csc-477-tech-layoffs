@@ -944,7 +944,7 @@ Showing **${filtered.length}** US events${scatterStart && scatterEnd ? ` from ${
 (() => {
   const W  = width; //reactive page width 
   const H  = 500;
-  const M  = {top: 30, right: 200, bottom: 90, left: 70};
+  const M  = {top: 20, right: 200, bottom: 90, left: 70};
   const IW = W - M.left - M.right;
   const IH = H - M.top  - M.bottom;
 
@@ -988,29 +988,22 @@ Showing **${filtered.length}** US events${scatterStart && scatterEnd ? ` from ${
 
   //the tooltip 
   const tip = container.append("div")
-    .style("position", "absolute") //freely at any x y pixel in container
-    .style("pointer-events", "none") //nothing if you click on it with mouse
-    .style("background", "rgba(15,23,42,0.92)")
-    .style("color", "#f1f5f9")
-    .style("padding", "10px 14px")
-    .style("border-radius", "7px") // rounded corners
+    .style("position", "absolute")
+    .style("pointer-events", "none")
+    .style("background", "rgba(255,255,255,0.96)")
+    .style("color", "#222")
+    .style("border", "1px solid #d6d6d6")
+    .style("border-radius", "6px")
+    .style("padding", "8px 10px")
     .style("font-size", "13px")
-    .style("line-height", "1.65") // added line spacking because it was cramped
-    .style("display", "none") // onlye popus up on mouse 
-    .style("max-width", "220px") // capped width for long company names
+    .style("line-height", "1.5")
+    .style("display", "none")
+    .style("max-width", "220px")
     .style("z-index", "10")
-    .style("box-shadow", "0 4px 12px rgba(0,0,0,0.25)");
+    .style("box-shadow", "0 3px 10px rgba(0,0,0,0.18)");
 
   const svg = container.append("svg").attr("width", W).attr("height", H).style("overflow", "visible");
   const g   = svg.append("g").attr("transform", `translate(${M.left},${M.top})`); //margin and svg adjustment
-
-  // Chart title
-  svg.append("text")
-   .attr("x", W / 2).attr("y", 20)
-   .attr("text-anchor", "middle")
-   .style("font-size", "15px").style("font-weight", "700")
-   .style("fill", "#1e293b")
-   .text("Stages of Survival: US Tech Layoffs across Industries by Funding Stage");
 
   // Divider for x and y axis to make qudrants
   const midX = xSc("Private Equity");
@@ -1057,14 +1050,14 @@ Showing **${filtered.length}** US events${scatterStart && scatterEnd ? ` from ${
   g.append("text")
    .attr("x", IW / 2).attr("y", IH + 82)
    .attr("text-anchor", "middle")
-   .style("font-size", "13px")
+   .style("font-size", "12px")
    .text("Funding Stage");
 
   g.append("text")
    .attr("transform", "rotate(-90)")
    .attr("x", -(IH / 2)).attr("y", -55)
    .attr("text-anchor", "middle")
-   .style("font-size", "13px")
+   .style("font-size", "12px")
    .text("% of Workforce Laid Off");
 
   // Dots
@@ -1091,7 +1084,7 @@ Showing **${filtered.length}** US events${scatterStart && scatterEnd ? ` from ${
      const fmt = v => v >= 1000 ? `$${(v / 1000).toFixed(1)}B` : `$${v}M`;
      tip.style("display", "block")
         .html(`<strong style="font-size:14px">${d.company}</strong><br>
-               <span style="color:#94a3b8">${d.industry} · ${d.stage}</span><br><br>
+               <span style="color:#888">${d.industry} · ${d.stage}</span><br><br>
                Laid off: <strong>${d.laidOff.toLocaleString()}</strong> people (${d.layoffPct.toFixed(0)}%)<br>
                Funding raised: <strong>${fmt(d.moneyRaised)}</strong><br>
                ${d.date.toLocaleDateString("en-US", {month: "long", year: "numeric"})}`)
@@ -1128,7 +1121,7 @@ Showing **${filtered.length}** US events${scatterStart && scatterEnd ? ` from ${
   legG.append("text")
     .attr("x", 0).attr("y", 0)
     .style("font-size", "11px").style("font-weight", "700")
-    .style("fill", "#475569").style("letter-spacing", "0.05em")
+    .style("fill", "#555").style("letter-spacing", "0.05em")
     .text("QUADRANT");
 
   legendEntries.forEach(({ color, title, sub }, i) => {
@@ -1144,7 +1137,7 @@ Showing **${filtered.length}** US events${scatterStart && scatterEnd ? ` from ${
     titleEl.append("tspan").attr("x", 20).attr("dy", "14").text(title[1]);
     legG.append("text")
       .attr("x", 20).attr("y", y + 34)
-      .style("font-size", "10px").style("fill", "#64748b")
+      .style("font-size", "10px").style("fill", "#888")
       .text(sub);
   });
 
@@ -1155,7 +1148,7 @@ Showing **${filtered.length}** US events${scatterStart && scatterEnd ? ` from ${
 })()
 ```
 
-<p class="section-insight">The chart above shows individual layoff events, giving a granular view of which companies cut workers, when, and at what scale. The heatmap below takes a broader view, aggregating those same events to reveal which funding stages were most consistently affected across the full five year period. Together they tell both the specific and the systemic story of how funding stage shaped a company's layoff experience.</p>
+<p class="section-insight">When Amazon laid off ~18,000 employees in early 2023, that number dominated headlines, but it was less than 5% of their workforce. Dot size here captures what makes the news; the Y axis captures what actually breaks a company. Established firms in the lower half of the chart were trimming; companies in the upper half were often closing. The chart above shows individual layoff events, giving a granular view of which companies cut workers, when, and at what scale. The heatmap below takes a broader view, aggregating those same events to reveal which funding stages were most consistently affected across the full five year period. Together they tell both the specific and the systemic story of how funding stage shaped a company's layoff experience.</p>
 
 <h2 class="section-title">Layoffs by Funding Stage</h2>
 <br/>
