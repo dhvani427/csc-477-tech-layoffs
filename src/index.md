@@ -893,19 +893,27 @@ const allIndustries = ["All Industries",
   ...Array.from(new Set(processed.map(d => d.industry))).sort()
 ];
 
-//dropdown for industry 
-const selectedIndustry = view(Inputs.select(allIndustries, {label: "Industry"}));
+const selectedIndustry = Mutable("All Industries");
+const setSelectedIndustry = v => { selectedIndustry.value = v; };
 ```
 
 ```js
 const companyNames = [...new Set(processed.map(d => d.company))].sort();
 
+const inputStyle = "padding:0.32rem 0.6rem;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem;font-family:inherit;color:#1f2937;background:white;";
+
+const industrySelect = html`<select style="${inputStyle}cursor:pointer;">
+  ${allIndustries.map(ind => html`<option value="${ind}">${ind}</option>`)}
+</select>`;
+
 const companyInput = html`<input
   list="scatter-company-list"
   placeholder="Search company…"
-  style="padding:0.32rem 0.6rem;border:1px solid #cbd5e1;border-radius:6px;font-size:0.9rem;width:220px;font-family:inherit;"
+  style="${inputStyle}width:200px;"
 >`;
 const companyClearBtn = html`<button style="padding:0.32rem 0.7rem;border:1px solid #cbd5e1;border-radius:6px;background:white;cursor:pointer;font-size:0.85rem;color:#475569;">Clear</button>`;
+
+industrySelect.addEventListener("change", () => setSelectedIndustry(industrySelect.value));
 
 companyInput.addEventListener("change", () => {
   const val = companyInput.value.trim();
@@ -917,11 +925,17 @@ companyClearBtn.addEventListener("click", () => {
   setSelectedCompany(null);
 });
 
-display(html`<div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;">
-  <label style="font-size:0.85rem;font-weight:600;color:#475569;">Company</label>
-  ${companyInput}
-  <datalist id="scatter-company-list">${companyNames.map(c => html`<option value="${c}">`)}</datalist>
-  ${companyClearBtn}
+display(html`<div style="display:flex;gap:1rem;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;">
+  <div style="display:flex;gap:0.4rem;align-items:center;">
+    <label style="font-size:0.85rem;font-weight:600;color:#475569;">Industry</label>
+    ${industrySelect}
+  </div>
+  <div style="display:flex;gap:0.4rem;align-items:center;">
+    <label style="font-size:0.85rem;font-weight:600;color:#475569;">Company</label>
+    ${companyInput}
+    <datalist id="scatter-company-list">${companyNames.map(c => html`<option value="${c}">`)}</datalist>
+    ${companyClearBtn}
+  </div>
 </div>`);
 ```
 
