@@ -952,7 +952,6 @@ const filtered = processed.filter(d =>
 );
 ```
 
-Showing **${filtered.length}** US events${scatterStart && scatterEnd ? ` from ${d3.timeFormat("%b %Y")(scatterStart)} to ${d3.timeFormat("%b %Y")(scatterEnd)}` : ""}.
 
 ```js
 (() => {
