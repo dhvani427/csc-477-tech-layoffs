@@ -1478,7 +1478,7 @@ display(heatContainer);
 
 <h2 class="section-title">Credits</h2>
 <br/>
-<p class="section-sub">This project was created by Sinchana Shivaprasad, Ivy Van Zant, Kannan Jain and Dhvani Goel for CSC 477 (Data Visualization) taught by Dr. Kazerouni at Cal Poly SLO. Our dataset came from <a href="https://www.kaggle.com/datasets/ulrikeherold/tech-layoffs-2020-2024" target="_blank">Kaggle Tech Layoffs 2020-2025</a>.</p>
+<p class="section-sub">This project was created by Sinchana Shivaprasad, Ivy Van Zant, Kannan Jain and Dhvani Goel for CSC 477 (Data Visualization) taught by Dr. Kazerouni at Cal Poly SLO. Our dataset came from <a href="https://www.kaggle.com/datasets/ulrikeherold/tech-layoffs-2020-2024" target="_blank">Kaggle Tech Layoffs 2020-2025</a>. The source code can be found at <a href="https://github.com/dhvani427/csc-477-tech-layoffs" target="_blank">csc-477-tech-layoffs</a></p>
 
 <style>
 /* Center prose column to match charts; keep text left-aligned inside */
