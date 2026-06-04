@@ -1164,7 +1164,7 @@ Showing **${filtered.length}** US events${scatterStart && scatterEnd ? ` from ${
 
 <p class="section-insight">When Amazon laid off ~18,000 employees in early 2023, that number dominated headlines, but it was less than 5% of their workforce. Dot size here captures what makes the news; the Y axis captures what actually breaks a company. Established firms in the lower half of the chart were trimming; companies in the upper half were often closing. The chart above shows individual layoff events, giving a granular view of which companies cut workers, when, and at what scale. The heatmap below takes a broader view, aggregating those same events to reveal which funding stages were most consistently affected across the full five year period. Together they tell both the specific and the systemic story of how funding stage shaped a company's layoff experience.</p>
 
-<h2 class="section-title">Layoffs by Funding Stage</h2>
+<h2 class="section-title">Total Layoffs by Funding Stage</h2>
 <br/>
 <p class="section-sub">The heatmap below shows US tech layoffs by funding stage and quarter, from seed-stage startups to public companies. Use the Metric dropdown to switch between total employees laid off, unique companies affected, and number of layoff events. Filter to a specific Year to zoom in on a single year's quarters. Hover over any cell to see the exact value and the top company for that stage and period.</p>
 
