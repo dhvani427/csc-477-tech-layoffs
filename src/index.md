@@ -4,7 +4,7 @@ toc: false
 
 <h1>US Tech Layoffs: 2020–2025</h1>
 <br/>
-<p class="subtitle" style="max-width: 700px;">The tech industry has undergone a dramatic shift from 2020 to 2025. From a hiring frenzy fueled by pandemic-era growth to one of the most sustained periods of workforce reduction in the sector's history, it affected companies at all different stages and across industries. The following visualizations use data aggregated from <a href="https://www.kaggle.com/datasets/ulrikeherold/tech-layoffs-2020-2024" target="_blank">Kaggle Tech Layoffs 2020-2025</a>, covering over 1,000 layoff events across US-based tech companies between 2020 and 2025.
+<p class="subtitle">The tech industry has undergone a dramatic shift from 2020 to 2025. From a hiring frenzy fueled by pandemic-era growth to one of the most sustained periods of workforce reduction in the sector's history, it affected companies at all different stages and across industries. The following visualizations use data aggregated from <a href="https://www.kaggle.com/datasets/ulrikeherold/tech-layoffs-2020-2024" target="_blank">Kaggle Tech Layoffs 2020-2025</a>, covering over 1,000 layoff events across US-based tech companies between 2020 and 2025.
 We attempt to present this information to help readers understand where layoffs happened, which companies and funding stages were most affected, and how major economic events shaped the industry's workforce over time.</p>
 
 ```js
@@ -20,7 +20,7 @@ const allEvents = data.length;
 const peakMonth = d3.rollups(data, v => d3.sum(v, d => d.Laid_Off), d => d3.timeFormat("%B %Y")(new Date(d.Date_layoffs)))
   .sort((a, b) => b[1] - a[1])[0];
 
-display(html`<p class="subtitle" style="max-width: 700px;">Between 2020 and 2025, at least <strong>${d3.format(",")(allTotal)}</strong> employees were laid off across <strong>${d3.format(",")(allCompanies)}</strong> US tech companies in <strong>${d3.format(",")(allEvents)}</strong> separate events. The hardest single month was <strong>${peakMonth ? peakMonth[0] : ""}</strong>, when over <strong>${peakMonth ? d3.format(",")(peakMonth[1]) : ""}</strong> workers lost their jobs as major companies announced cuts simultaneously.</p>`);
+display(html`<p class="subtitle">Between 2020 and 2025, at least <strong>${d3.format(",")(allTotal)}</strong> employees were laid off across <strong>${d3.format(",")(allCompanies)}</strong> US tech companies in <strong>${d3.format(",")(allEvents)}</strong> separate events. The hardest single month was <strong>${peakMonth ? peakMonth[0] : ""}</strong>, when over <strong>${peakMonth ? d3.format(",")(peakMonth[1]) : ""}</strong> workers lost their jobs as major companies announced cuts simultaneously.</p>`);
 ```
 
 <h2 class="section-title">Layoffs Over Time</h2>
@@ -925,7 +925,7 @@ companyClearBtn.addEventListener("click", () => {
   setSelectedCompany(null);
 });
 
-display(html`<div style="display:flex;gap:1rem;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;">
+display(html`<div class="chart-controls" style="display:flex;gap:1rem;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;">
   <div style="display:flex;gap:0.4rem;align-items:center;">
     <label style="font-size:0.85rem;font-weight:600;color:#475569;">Industry</label>
     ${industrySelect}
@@ -1188,7 +1188,7 @@ const heatYear = Inputs.select(
 );
 const heatYearVal = Generators.input(heatYear);
 
-display(htl.html`<div style="display:flex;gap:2rem;align-items:center;margin-bottom:1rem;">
+display(htl.html`<div class="chart-controls" style="display:flex;gap:2rem;align-items:center;margin-bottom:1rem;">
   ${heatMetric}
   ${heatYear}
 </div>`);
@@ -1482,13 +1482,42 @@ display(heatContainer);
 <p class="section-sub">This project was created by Sinchana Shivaprasad, Ivy Van Zant, Kannan Jain and Dhvani Goel for CSC 477 (Data Visualization) taught by Dr. Kazerouni at Cal Poly SLO. Our dataset came from <a href="https://www.kaggle.com/datasets/ulrikeherold/tech-layoffs-2020-2024" target="_blank">Kaggle Tech Layoffs 2020-2025</a>.</p>
 
 <style>
+/* Center prose column to match charts; keep text left-aligned inside */
+#observablehq-main h1,
+#observablehq-main h2,
+#observablehq-main h3,
+#observablehq-main p,
+#observablehq-main .subtitle,
+#observablehq-main .section-title,
+#observablehq-main .section-sub,
+#observablehq-main .section-insight {
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: left;
+}
+
+#observablehq-main .timeline-watch,
+#observablehq-main .state-dashboard,
+#observablehq-main .stats-row,
+#observablehq-main .chart-controls,
+#observablehq-main svg {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#observablehq-main .stats-row,
+#observablehq-main .chart-controls {
+  justify-content: center;
+}
+
 h1 { font-size: 2rem; margin-bottom: 0.25rem; pointer-events: none; }
 h1 a, h1 a:hover { color: inherit; text-decoration: none; pointer-events: none; }
 .subtitle { font-size: 1.1rem; color: #666; margin-top: 0; margin-bottom: 1.5rem; }
 .section-title { pointer-events: none; }
 .section-title a, .section-title a:hover { color: inherit; text-decoration: none; pointer-events: none; }
 .section-sub { color: #555; margin-top: -0.5rem; margin-bottom: 1rem; }
-.section-insight { color: #555; margin: 1rem 0 2rem; max-width: 800px; }
+.section-insight { color: #555; margin: 1rem 0 2rem; }
 hr { margin: 2rem 0; }
 .brush .selection { fill: steelblue; fill-opacity: 0.2; stroke: steelblue; }
 .stats-row { display: flex; gap: 1.5rem; margin: 1rem 0 2rem; }
@@ -1510,6 +1539,8 @@ hr { margin: 2rem 0; }
 
 .state-dashboard-header {
   margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
 }
 
 .state-dashboard-grid {
@@ -1531,6 +1562,7 @@ hr { margin: 2rem 0; }
   margin-top: 0;
   margin-bottom: 0.25rem;
   font-size: 1.05rem;
+  text-align: left;
 }
 
 .state-panel .section-sub {
