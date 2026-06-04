@@ -2,20 +2,30 @@
 toc: false
 ---
 
-<h1>US Tech Layoff Patterns</h1>
+<h1>US Tech Layoffs: 2020–2025</h1>
+<br/>
 <p class="subtitle" style="max-width: 700px;">The tech industry has undergone a dramatic shift from 2020 to 2025. From a hiring frenzy fueled by pandemic-era growth to one of the most sustained periods of workforce reduction in the sector's history, it affected companies at all different stages and across industries. The following visualizations use data aggregated from <a href="https://www.kaggle.com/datasets/ulrikeherold/tech-layoffs-2020-2024" target="_blank">Kaggle Tech Layoffs 2020-2025</a>, covering over 1,000 layoff events across US-based tech companies between 2020 and 2025.
 We attempt to present this information to help readers understand where layoffs happened, which companies and funding stages were most affected, and how major economic events shaped the industry's workforce over time.</p>
 
 ```js
 import * as d3 from "npm:d3";
-const raw = await FileAttachment("data/layoffs.csv").csv({ typed: true });
-const data = raw.filter(d => d.Date_layoffs && d.Laid_Off > 0);
+const raw = await FileAttachment("data/Cleaned_tech_layoffs.csv").csv({ typed: true });
+const data = raw.filter(d => d.Date_layoffs && d.Laid_Off > 0 && d.Country === "USA");
 ```
 
----
+```js
+const allTotal = d3.sum(data, d => d.Laid_Off);
+const allCompanies = new Set(data.map(d => d.Company)).size;
+const allEvents = data.length;
+const peakMonth = d3.rollups(data, v => d3.sum(v, d => d.Laid_Off), d => d3.timeFormat("%B %Y")(new Date(d.Date_layoffs)))
+  .sort((a, b) => b[1] - a[1])[0];
+
+display(html`<p class="subtitle" style="max-width: 700px;">Between 2020 and 2025, at least <strong>${d3.format(",")(allTotal)}</strong> employees were laid off across <strong>${d3.format(",")(allCompanies)}</strong> US tech companies in <strong>${d3.format(",")(allEvents)}</strong> separate events. The hardest single month was <strong>${peakMonth ? peakMonth[0] : ""}</strong>, when over <strong>${peakMonth ? d3.format(",")(peakMonth[1]) : ""}</strong> workers lost their jobs as major companies announced cuts simultaneously.</p>`);
+```
 
 <h2 class="section-title">Layoffs Over Time</h2>
-<p class="section-sub">Brush the timeline to explore changes in layoffs across different time periods</p>
+<br/>
+<p class="section-sub">Brush the timeline to explore changes in layoffs across different time periods. Drag across the chart to select a date range, and the summary stats below will update automatically. Hover over any point to see the exact month, total employees laid off, and average percentage of workforce cut.</p>
 
 ```js
 const brushRange = Mutable([null, null]);
@@ -28,15 +38,20 @@ const formatMonth = d3.timeFormat("%Y-%m");
 
 const byMonth = d3.rollups(
   data,
-  v => d3.sum(v, d => d.Laid_Off),
+  v => {
+    const total = d3.sum(v, d => d.Laid_Off);
+    const validPct = v.filter(d => d.Percentage > 0 && d.Percentage <= 100);
+    const avgPct = validPct.length > 0 ? d3.mean(validPct, d => d.Percentage) : null;
+    return { total, avgPct };
+  },
   d => formatMonth(typeof d.Date_layoffs === "string" ? parseDate(d.Date_layoffs) : d.Date_layoffs)
 )
-.map(([month, total]) => ({ date: new Date(month + "-01"), total }))
+.map(([month, { total, avgPct }]) => ({ date: new Date(month + "-01"), total, avgPct }))
 .sort((a, b) => a.date - b.date);
 ```
 
 ```js
-const margin = { top: 20, right: 30, bottom: 35, left: 70 };
+const margin = { top: 60, right: 30, bottom: 35, left: 70 };
 const W = width - margin.left - margin.right;
 const H = 280;
 
@@ -86,6 +101,48 @@ g.append("text").attr("x", -H / 2).attr("y", -50).attr("transform", "rotate(-90)
 g.append("path").datum(byMonth).attr("fill", "steelblue").attr("fill-opacity", 0.3).attr("d", area);
 g.append("path").datum(byMonth).attr("fill", "none").attr("stroke", "steelblue").attr("stroke-width", 2).attr("d", line);
 
+// Major event annotations
+const events = [
+  { date: new Date("2020-04-01"), label: "COVID-19 Pandemic",       labelY: -10 },
+  { date: new Date("2022-03-01"), label: "Fed Rate Hikes Begin",    labelY: -25 },
+  { date: new Date("2022-11-01"), label: "ChatGPT Released",        labelY: -40 },
+  { date: new Date("2023-01-01"), label: "Peak Big Tech Layoffs",   labelY: -10 },
+];
+
+const eventG = g.append("g").attr("class", "event-annotations");
+
+events.forEach((ev, i) => {
+  const xPos = x(ev.date);
+  const labelY = ev.labelY;
+
+  eventG.append("line")
+    .attr("x1", xPos).attr("x2", xPos)
+    .attr("y1", 0).attr("y2", H)
+    .attr("stroke", "#e05c5c")
+    .attr("stroke-width", 1.2)
+    .attr("stroke-dasharray", "4,3")
+    .attr("stroke-width", 2)
+    .attr("opacity", 0.7);
+
+  // connector line from label down to top of chart
+  if (labelY < -2) {
+    eventG.append("line")
+      .attr("x1", xPos).attr("x2", xPos)
+      .attr("y1", labelY + 10).attr("y2", 0)
+      .attr("stroke", "#e05c5c")
+      .attr("stroke-width", 1)
+      .attr("opacity", 0.4);
+  }
+
+  eventG.append("text")
+    .attr("x", xPos + 4)
+    .attr("y", labelY)
+    .style("font-size", "11px")
+    .style("fill", "#e05c5c")
+    .style("font-weight", "600")
+    .text(ev.label);
+});
+
 // Vertical line for tooltip crosshair
 const hoverLine = g.append("line")
   .attr("class", "hover-line")
@@ -116,7 +173,7 @@ brushG.select(".overlay")
     tooltip.style("visibility", "visible")
       .style("left", (event.pageX + 12) + "px")
       .style("top", (event.pageY - 28) + "px")
-      .html(`<strong>${d3.timeFormat("%B %Y")(d.date)}</strong><br/>Laid off: ${d3.format(",")(d.total)}`);
+      .html(`<strong>${d3.timeFormat("%B %Y")(d.date)}</strong><br/>Laid off: ${d3.format(",")(d.total)}<br/>Avg % of workforce: ${d.avgPct != null ? d.avgPct.toFixed(1) + "%" : "N/A"}`);
   })
   .on("mouseout", function() {
     hoverLine.style("visibility", "hidden");
@@ -284,11 +341,18 @@ const statsDiv = html`<div class="stats-row">
 display(statsDiv);
 ```
 
-
----
+```js
+const parseDate2 = d3.timeParse("%Y-%m-%d");
+const byMonth2 = d3.rollups(data, v => d3.sum(v, d => d.Laid_Off), d => d3.timeFormat("%Y-%m")(typeof d.Date_layoffs === "string" ? parseDate2(d.Date_layoffs) : d.Date_layoffs))
+  .sort((a, b) => a[0].localeCompare(b[0]));
+const peak2 = byMonth2.sort((a, b) => b[1] - a[1])[0];
+const peakLabel = peak2 ? `${d3.timeFormat("%B %Y")(new Date(peak2[0] + "-01"))} (${d3.format(",")(peak2[1])} employees)` : "";
+display(html`<p class="section-insight">Layoffs surged dramatically in late 2022 and early 2023 as major tech companies reversed pandemic-era overhiring following rising interest rates and slowing growth. The single worst month was <strong>${peakLabel}</strong>, driven by simultaneous cuts at Amazon, Google, and Microsoft. While layoffs have continued through 2024 and 2025, they have not returned to those peak levels.</p>`);
+```
 
 <h2 class="section-title">U.S. Layoffs by State and Company</h2>
-<p class="section-sub no-wrap">Brush the timeline above, then click a state on the map or use the dropdown to explore top companies.</p>
+<br/>
+<p class="section-sub no-wrap">Brush the timeline above to filter by date range, and the map will update to reflect layoffs in that period. Click a state to see which companies laid off the most workers there, or use the dropdown to select a state manually. Hover over any state to see total layoffs and number of events.</p>
 
 ```js
 // Filter to US only for the map and bar chart, using the selected timeline range from the top chart
@@ -790,23 +854,21 @@ display(html`
 
     <div class="state-dashboard-grid">
       <div class="state-panel">
-        <h3>Layoffs by State</h3>
-        <p class="section-sub">Brush the timeline above to update the map.</p>
         ${mapContainer}
       </div>
 
       <div class="state-panel">
-        <h3>Top Companies by State</h3>
-        <p class="section-sub">Click a state on the map, or use the dropdown.</p>
         ${barChartNode}
       </div>
     </div>
   </div>
 `);
 ```
----
+
+<p class="section-insight">California dominates the layoff landscape, reflecting its concentration of major tech headquarters in the Bay Area. However, states like Washington, New York, and Texas also saw significant cuts, showing that the impact of the tech downturn extended well beyond Silicon Valley.</p>
 
 <h2 class="section-title">Stages of Survival: Layoffs by Funding Stage</h2>
+<br/>
 <p class="section-sub">Each dot is a layoff event, sized by number laid off. Use the date filter at the top to filter by date. Click a dot or search by company name to highlight all layoff events for that company.</p>
 
 ```js
@@ -1093,7 +1155,10 @@ Showing **${filtered.length}** US events${scatterStart && scatterEnd ? ` from ${
 })()
 ```
 
+<p class="section-insight">The chart above shows individual layoff events, giving a granular view of which companies cut workers, when, and at what scale. The heatmap below takes a broader view, aggregating those same events to reveal which funding stages were most consistently affected across the full five year period. Together they tell both the specific and the systemic story of how funding stage shaped a company's layoff experience.</p>
+
 <h2 class="section-title">Layoffs by Funding Stage</h2>
+<br/>
 <p class="section-sub">The heatmap below shows US tech layoffs by funding stage and quarter, from seed-stage startups to public companies. Use the Metric dropdown to switch between total employees laid off, unique companies affected, and number of layoff events. Filter to a specific Year to zoom in on a single year's quarters. Hover over any cell to see the exact value and the top company for that stage and period.</p>
 
 ```js
@@ -1340,7 +1405,7 @@ activeStages.forEach((stage, si) => {
             const r = rollup.get(`${stage}|${col}`);
             const topCo = r ? [...r.companies.entries()].sort((a,b) => b[1]-a[1])[0] : null;
             const topLine = topCo ? `<br/>Top company: <strong>${topCo[0]}</strong> (${d3.format(",")(topCo[1])})` : "";
-            return `<strong>${stage} — ${colLabel}</strong><br/>${metricLabel}: ${formatTooltipVal(val)}${topLine}`;
+            return `<strong>${stage}, ${colLabel}</strong><br/>${metricLabel}: ${formatTooltipVal(val)}${topLine}`;
           });
       })
       .on("mousemove", function(event) {
@@ -1396,9 +1461,17 @@ display(heatContainer);
 
 
 <h2 class="section-title">Summary</h2>
-<p class="section-sub">Through publicly available data, we were able to create a visualization that details the patterns found in tech layoffs in the US in the padt five years. We have seen that larger companies tend to go through more layoffs, but also have larger populations of employees. While several early stage start-ups went under, we were able to see how far their funding took them. This data revealed how closely related economic events and the tech industry are, an the over-hiring and overcorrection cycles that repeat themselves.</p>
+<br/>
+<p class="section-sub">The past five years of US tech layoffs reveal a clear story of overcorrection. Companies hired aggressively during the COVID-19 pandemic as demand for digital services surged, then reversed course sharply when interest rates rose and growth slowed. The result was a wave of cuts concentrated in late 2022 and early 2023 that affected workers at every level, from seed-stage startups to the largest publicly traded companies.</p>
+
+<p class="section-sub">Geographically, California bore the heaviest burden, unsurprisingly given its concentration of major tech headquarters. But the impact was national, with significant layoffs recorded across Washington, New York, Texas, and beyond. Larger, post-IPO companies accounted for the most total employees cut, though early-stage startups often saw the deepest cuts as a percentage of their workforce, with many shutting down entirely.</p>
+
+<p class="section-sub">What this data ultimately shows is how closely tied the tech industry is to broader economic forces. The over-hiring and overcorrection cycles visible in this data are unlikely to be the last, making transparency and tools like this one increasingly important for understanding how workforce decisions ripple across the industry.</p>
+
+<p class="section-sub">It is worth noting that this dataset captures only publicly reported layoff events, meaning smaller company cuts that did not receive press coverage are likely underrepresented. The true scale of the tech workforce reduction over this period is almost certainly larger than what is shown here.</p>
 
 <h2 class="section-title">Credits</h2>
+<br/>
 <p class="section-sub">This project was created by Sinchana Shivaprasad, Ivy Van Zant, Kannan Jain and Dhvani Goel for CSC 477 (Data Visualization) taught by Dr. Kazerouni at Cal Poly SLO. Our dataset came from <a href="https://www.kaggle.com/datasets/ulrikeherold/tech-layoffs-2020-2024" target="_blank">Kaggle Tech Layoffs 2020-2025</a>.</p>
 
 <style>
@@ -1408,6 +1481,7 @@ h1 a, h1 a:hover { color: inherit; text-decoration: none; pointer-events: none; 
 .section-title { pointer-events: none; }
 .section-title a, .section-title a:hover { color: inherit; text-decoration: none; pointer-events: none; }
 .section-sub { color: #555; margin-top: -0.5rem; margin-bottom: 1rem; }
+.section-insight { color: #555; margin: 1rem 0 2rem; max-width: 800px; }
 hr { margin: 2rem 0; }
 .brush .selection { fill: steelblue; fill-opacity: 0.2; stroke: steelblue; }
 .stats-row { display: flex; gap: 1.5rem; margin: 1rem 0 2rem; }
