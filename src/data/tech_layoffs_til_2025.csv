@@ -210,7 +210,7 @@ Nr,Company,Location_HQ,Region,USState,Country,Continent,Laid_Off,Date_layoffs,Pe
 209,Kayak / OpenTable,Stamford,other,Connecticut,USA,North America,160,2020-04-29,8.0,2000 ,1840 ,Travel,Acquired,229,2020,41.0534302,-73.5387341
 210,Lime,San Francisco,San Francisco Bay Area,California,USA,North America,80,2020-04-29,13.0,615 ,535 ,Transportation,Series D,765,2020,37.7792588,-122.4193286
 211,Lyft,San Francisco,San Francisco Bay Area,California,USA,North America,982,2020-04-29,17.0,5776 ,4794 ,Transportation,Post-IPO,4900,2020,37.7792588,-122.4193286
-212,TranSan Francisco Bay Areaix,New York City,other,New York,USA,North America,24,2020-04-29,10.0,240 ,216 ,Logistics,Series D,128,2020,40.7127281,-74.0060152
+212,Transfix,New York City,other,New York,USA,North America,24,2020-04-29,10.0,240 ,216 ,Logistics,Series D,128,2020,40.7127281,-74.0060152
 213,Culture Trip,London,other,England,UK,Europe,95,2020-05-01,32.0,297 ,202 ,Media,Series B,102,2020,51.4893335,-0.144055085
 214,Namely,New York City,other,New York,USA,North America,110,2020-05-01,40.0,275 ,165 ,HR,Series E,217,2020,40.7127281,-74.0060152
 215,Sandbox VR,San Francisco,San Francisco Bay Area,California,USA,North America,80,2020-05-01,80.0,100 ,20 ,Consumer,Series A,82,2020,37.7792588,-122.4193286
@@ -319,7 +319,7 @@ Nr,Company,Location_HQ,Region,USState,Country,Continent,Laid_Off,Date_layoffs,Pe
 318,Eatsy,Singapore,other,non,Singapore,Asia,20,2020-08-08,100.0,20 ,0 ,Food,Seed,1,2020,1.2899175,103.8519072
 319,Mozilla,San Francisco,San Francisco Bay Area,California,USA,North America,250,2020-08-11,25.0,1000 ,750 ,Consumer,Unknown,2,2020,37.7792588,-122.4193286
 320,Docly,London,other,England,UK,Europe,8,2020-08-19,80.0,10 ,2 ,Healthcare,Seed,16,2020,51.4893335,-0.144055085
-321,SaleSan Francisco Bay Areaorce,San Francisco,San Francisco Bay Area,California,USA,North America,1000,2020-08-26,2.0,50000 ,49000 ,Sales,Post-IPO,65,2020,37.7792588,-122.4193286
+321,Salesforce,San Francisco,San Francisco Bay Area,California,USA,North America,1000,2020-08-26,2.0,50000 ,49000 ,Sales,Post-IPO,65,2020,37.7792588,-122.4193286
 322,MakeMyTrip,New Delhi,other,Delhi,India,Asia,350,2020-08-31,10.0,3500 ,3150 ,Travel,Post-IPO,548,2020,28.6138954,77.2090057
 323,GoBear,Singapore,other,non,Singapore,Asia,22,2020-09-01,11.0,200 ,178 ,Finance,Unknown,97,2020,1.2899175,103.8519072
 324,Waze,Palo Alto,San Francisco Bay Area,California,USA,North America,30,2020-09-09,5.0,600 ,570 ,Transportation,Acquired,67,2020,37.4443293,-122.1598465
@@ -783,7 +783,7 @@ Nr,Company,Location_HQ,Region,USState,Country,Continent,Laid_Off,Date_layoffs,Pe
 782,Twitter,San Francisco,San Francisco Bay Area,California,USA,North America,3700,2022-11-04,50.0,7400 ,3700 ,Consumer,Post-IPO,12900,2022,37.7792588,-122.4193286
 783,Varonis,New York City,other,New York,USA,North America,110,2022-11-06,5.0,2200 ,2090 ,Security,Post-IPO,30,2022,40.7127281,-74.0060152
 784,Dock,Sao Paulo,other,State of São Paulo,Brazil,South America,190,2022-11-07,12.0,1583 ,1393 ,Finance,Private Equity,280,2022,-23.5506507,-46.6333824
-785,SaleSan Francisco Bay Areaorce,San Francisco,San Francisco Bay Area,California,USA,North America,1000,2022-11-07,1.0,100000 ,99000 ,Sales,Post-IPO,65,2022,37.7792588,-122.4193286
+785,Salesforce,San Francisco,San Francisco Bay Area,California,USA,North America,1000,2022-11-07,1.0,100000 ,99000 ,Sales,Post-IPO,65,2022,37.7792588,-122.4193286
 786,Unacademy,Bengaluru,other,Karnataka,India,Asia,350,2022-11-07,10.0,3500 ,3150 ,Education,Series H,838,2022,12.98815675,77.62260004
 787,Zendesk,San Francisco,San Francisco Bay Area,California,USA,North America,350,2022-11-07,5.0,7000 ,6650 ,Support,Acquired,85,2022,37.7792588,-122.4193286
 788,Repertoire Immunity,Boston,other,Massachusetts,USA,North America,65,2022-11-08,50.0,130 ,65 ,Healthcare,Series B,257,2022,42.3554334,-71.060511
@@ -923,7 +923,7 @@ Nr,Company,Location_HQ,Region,USState,Country,Continent,Laid_Off,Date_layoffs,Pe
 922,Astronomer,Cincinnati,other,Ohio,USA,North America,76,2023-01-04,20.0,380 ,304 ,Data,Series C,282,2023,39.1014537,-84.5124602
 923,Augury,New York City,other,New York,USA,North America,20,2023-01-04,5.0,400 ,380 ,Manufacturing,Series E,274,2023,40.7127281,-74.0060152
 924,Kaltura,New York City,other,New York,USA,North America,75,2023-01-04,11.0,682 ,607 ,Media,Post-IPO,166,2023,40.7127281,-74.0060152
-925,SaleSan Francisco Bay Areaorce,San Francisco,San Francisco Bay Area,California,USA,North America,8000,2023-01-04,10.0,80000 ,72000 ,Sales,Post-IPO,65,2023,37.7792588,-122.4193286
+925,Salesforce,San Francisco,San Francisco Bay Area,California,USA,North America,8000,2023-01-04,10.0,80000 ,72000 ,Sales,Post-IPO,65,2023,37.7792588,-122.4193286
 926,Everlane,San Francisco,San Francisco Bay Area,California,USA,North America,30,2023-01-05,17.0,176 ,146 ,Retail,Unknown,176,2023,37.7792588,-122.4193286
 927,Moglix,Singapore,other,non,Singapore,Asia,40,2023-01-05,2.0,2000 ,1960 ,Retail,Series F,472,2023,1.2899175,103.8519072
 928,Pecan AI,Tel Aviv,other,non,Israel,Asia,30,2023-01-05,25.0,120 ,90 ,Data,Series C,116,2023,32.0852997,34.7818064
@@ -1054,7 +1054,7 @@ Nr,Company,Location_HQ,Region,USState,Country,Continent,Laid_Off,Date_layoffs,Pe
 1053,Gusto,San Francisco,San Francisco Bay Area,California,USA,North America,126,2023-02-08,5.0,2520 ,2394 ,HR,Series E,746,2023,37.7792588,-122.4193286
 1054,Deliveroo,London,other,England,UK,Europe,350,2023-02-09,9.0,3889 ,3539 ,Food,Post-IPO,1700,2023,51.4893335,-0.144055085
 1055,GitLab,San Francisco,San Francisco Bay Area,California,USA,North America,130,2023-02-09,7.0,1857 ,1727 ,Product,Post-IPO,413,2023,37.7792588,-122.4193286
-1056,MiSan Francisco Bay Areaits Market,Philadelphia,other,Pennsylvania,USA,North America,649,2023-02-09,33.0,1967 ,1318 ,Food,Series C,526,2023,39.9527237,-75.1635262
+1056,Misfits Market,Philadelphia,other,Pennsylvania,USA,North America,649,2023-02-09,33.0,1967 ,1318 ,Food,Series C,526,2023,39.9527237,-75.1635262
 1057,Olive AI,Columbus,other,Ohio,USA,North America,215,2023-02-09,35.0,614 ,399 ,Healthcare,Series H,856,2023,39.9622601,-83.0007065
 1058,Oportun,San Carlos,San Francisco Bay Area,California,USA,North America,155,2023-02-09,10.0,1550 ,1395 ,Finance,Post-IPO,566,2023,37.504936,-122.261823
 1059,REE Automotive,Tel Aviv,other,non,Israel,Asia,31,2023-02-09,11.0,282 ,251 ,Transportation,Post-IPO,317,2023,32.0852997,34.7818064
@@ -1359,7 +1359,7 @@ Nr,Company,Location_HQ,Region,USState,Country,Continent,Laid_Off,Date_layoffs,Pe
 1358,C2FO,Kansas City,other,Kansas,USA,North America,80,2023-10-16,3.0,2667 ,2587 ,Finance,Series H,537,2023,39.100105,-94.5781416
 1359,LinkedIn,Sunnyvale,San Francisco Bay Area,California,USA,North America,660,2023-10-16,3.0,22000 ,21340 ,HR,Acquired,154,2023,37.3688301,-122.036349
 1360,ManoMano,Paris,other,non,France,Europe,230,2023-10-18,25.0,920 ,690 ,Retail,Series F,705,2023,48.8588897,2.320041022
-1361,WeTranSan Francisco Bay Areaer,Amsterdam,other,non,Netherlands,Europe,35,2023-10-18,10.0,350 ,315 ,Other,Series A,64,2023,52.3730796,4.8924534
+1361,WeTransfer,Amsterdam,other,non,Netherlands,Europe,35,2023-10-18,10.0,350 ,315 ,Other,Series A,64,2023,52.3730796,4.8924534
 1362,Bullhorn,Boston,other,Massachusetts,USA,North America,140,2023-10-19,9.0,1556 ,1416 ,Sales,Acquired,32,2023,42.3554334,-71.060511
 1363,Convoy,Seattle,Cascadia,Washington,USA,North America,500,2023-10-19,100.0,500 ,0 ,Logistics,Series E,1100,2023,47.6038321,-122.330062
 1364,StellarAlgo,Calgary,other,Alberta,Canada,North America,21,2023-10-19,28.0,75 ,54 ,Data,Series A,16,2023,51.0456064,-114.057541
